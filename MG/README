@@ -1,0 +1,54 @@
+/*****************************************************************************
+ *
+ * file:   README
+ *
+ * description:
+ *
+ *   This file is to give an overview of the SAC demo programs of this
+ *   directory.
+ *
+ *   The directory comes with a Makefile that contains pattern rules
+ *   for making executables from SAC-source files. Therefore each of the
+ *   demo programs <name>.sac can be compiled by simply running (GNU-)
+ *   "make <name>". The pattern rules provided even comprise an implicit
+ *   dependency-checking system. It makes sure that any module needed for
+ *   the compilation of a particular program will be compiled on beforehand.
+ *
+ *****************************************************************************/
+
+1) NASmg_with_borders.sac
+
+This is the SAC implementation of the NAS benchmark MG. The main goal
+of this implementation is to to specify exactly the same algorithm as
+given in the Fortran benchmark, but try to specify it much more elegantly.
+For more details see <hhtp://www.informatik.uni-kiel.de/~sacbase/papers/
+scientific-applications-sac-bonn-96.ps.gz>.
+The source code contains 4 different versions which can be selected by
+setting two compiler flags. For details concerning these versions see the
+comments in the source code itself.
+
+For running this demo, an input_file has to be specified which contains the size
+as well as the non-zero elements of the initial array. Some of these can be found
+in inputs/NASmg*.
+
+
+2) NASmg_rotate.sac
+
+This is another SAC implementation of the NAS benchmark MG. The difference
+in comparison to NASmg_with_borders.sac is that the multigrid relaxation
+is not performed on arrays which carry copies of the "opposite borders"
+but on arrays without borders. This is achieved by using rotate functions
+which cyclicly shift elements of arrays. By means of With-Loop-Folding
+this program can be transformed into code which is competitive with the code
+generated from NASmg_with_borders.sac. For more details see
+<hhtp://www.informatik.uni-kiel.de/~sacbase/papers/wlf-exp-london-98.ps.gz>.
+
+Warning: due to some "non-optimal" design decisions made in the sac2c compiler,
+the compilation of this file requires about 1 GByte of memory for compilation.
+We hope to come up with a better solution for the next release...
+
+For running this demo, an input_file has to be specified which contains the size
+as well as the non-zero elements of the initial array. Some of these can be found
+in inputs/NASmg*.
+
+
