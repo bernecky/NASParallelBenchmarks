@@ -1,0 +1,183 @@
+import StdIO: all;
+import Math: all;
+import MathArray: all;
+import Array: all;
+
+inline double my_mod(double a, double b, double d1, double d2)
+  {
+    a1=floor(a/d2);
+    a2=a-d2*a1;
+    b1=floor(b/d2);
+    b2=b-d2*b1;
+    t1=a1*b2+a2*b1;
+    t2=floor(t1/d2);
+    t3=t1-d2*t2;
+    t4=d2*t3+a2*b2;
+    t5=floor(t4/d1);
+    c=t4-d1*t5;
+
+    return(c);
+  }
+
+#define N 4194304
+#define N2 8388608
+
+double[] CreateRands( int num, double seed, double a, double d1, double d2 )
+{
+  res = genarray( [N2], seed);
+  for( i=1; i<num; i++) {
+    res[[i]] = my_mod(a, res[[i-1]], d1, d2);
+  }
+  return( res);
+}
+
+inline int[] ModarrayMasked( bool[] pred, int[] a, int def_val)
+{
+  res = with( .<= iv <= .) {
+          if( pred[iv]) {
+            val = def_val;
+          } else {
+            val = a[iv];
+          }
+        } modarray( a, iv, val);
+  return( res);
+}
+
+int[] IncAt( int[] a, int[] idxs)
+{
+  for( i = 0; i<shape(idxs)[[0]]; i++) {
+    if( idxs[[i, 0]] >= 0) {
+      a[idxs[[i]]] = a[idxs[[i]]] + 1;
+    }
+  }
+  return( a);
+}
+
+int[] IncAt_mt( int[] a, int[] idxs)
+{
+  res = with( .<= iv <= .) {
+          val = sum( toi(idxs == iv[0]));
+        } genarray( shape(a), val);
+  return( res);
+}
+
+inline double[] InnerProducts( double[] vs, double[] ws)
+{
+  res = with( . <= iv <= .)
+        genarray( drop( [-1], shape( ws)), InnerProduct( vs[iv], ws[iv]));
+  return( res);
+}
+
+inline double InnerProduct( double[] v, double[] w)
+{
+  return( sum( v * w));
+}
+
+inline double[] MultOnDim( int d, double[] a, double[] b)
+{
+  res = with( .<= iv <=.)
+        genarray( shape(a), a[iv] * b[iv[[d]]]);
+  return( res);
+}
+
+inline double[] Maxima( double[] vs)
+{
+  res = with( . <= iv <= .)
+        genarray( drop( [-1], shape( vs)), max( vs[iv][[0]], vs[iv][[1]]));
+  return( res);
+}
+
+int main () 
+  {
+
+    /* Initialisierungen */
+    size = FibreScanInt(); 
+    n    = pow(2.0d, tod(size));
+    a    = pow(5.0d,13.0d); 
+    s    = 271828183.0d;
+    d    = pow(2.0d,46.0d);
+    sxk  = 0.0d;
+    syk  = 0.0d;
+    tmp2 = s;
+    d1=pow(2.0d,46.0d);
+    d2=pow(2.0d,23.0d);
+
+    Q    = [0,0,0,0,0,0,0,0,0,0];
+
+    /* Berechnung der Benchmarks */
+
+#ifdef SEQ
+
+    for (j=0; j<n; j++)
+      {
+        tmp1=my_mod(a, tmp2, d1, d2);
+	tmp2=my_mod(a, tmp1, d1, d2);
+
+	r2jm1=tmp1/d;
+	r2j=tmp2/d;
+
+	xj=2*r2jm1-1;
+	yj=2*r2j-1;
+
+	tj=xj*xj+yj*yj;
+
+	if (tj<=1)
+	  {
+	    sl=log(tj);
+	    sl*=-2;
+	    sl/=tj;
+	    sl=sqrt(sl);
+	    
+	    xj*=sl;
+	    yj*=sl;
+
+            sxk+=xj;
+	    syk+=yj;
+            
+	    fabsxj = fabs(xj);
+	    fabsyj = fabs(yj);
+            
+            fl=toi(max(fabsxj,fabsyj));
+
+            Q = modarray (Q, [fl], psi([fl], Q) + 1 );
+
+	  }
+	else
+	  {
+            tmp=0;	  
+	  } 
+      }
+    
+#else
+  
+  rands = reshape( [N,2], CreateRands( N2, my_mod(a, tmp2, d1, d2), a, d1, d2));
+
+  vects = 2.0 * (rands/d) - 1.0;
+
+z = vects[[0,0]]; /* WLF prevention */
+
+  tj = InnerProducts( vects, vects);
+
+  sl = sqrt( ( log(tj) * (-2.0) ) / tj );
+  vects = MultOnDim( 0, vects, sl);
+  fl = toi( Maxima( fabs( vects)));
+
+  fl = ModarrayMasked( (tj > 1.0), fl, -1);
+  Q = IncAt_mt( Q, reshape([N,1], fl));
+
+printf( "dummy z: %g\n", z); /* WLF prevention */
+
+#endif
+
+    /* Ausgabe der Ergebnisse */
+    
+    print( Q);
+    print( "\n sxk: ");
+    print(sxk);
+    print( "\n syk: ");
+    print(syk);
+    print( "\n");
+    
+    return(0);
+  }
+

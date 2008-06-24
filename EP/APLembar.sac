@@ -1,0 +1,122 @@
+import StdIO: all;
+import Math: all;
+import Array: all;
+ 
+/*
+ * compile with -noLIR -noWLF -noCF !!
+ */
+
+#if 0
+#ifndef N
+#define N  2097152 /* 2^21 */
+#define TN 4194304
+#endif
+#endif
+
+#define N 4
+#define TN 8
+ 
+inline double my_mod(double a, double b, double d1, double d2)
+  {
+    a1=floor(a/d2);
+    a2=a-d2*a1;
+    b1=floor(b/d2);
+    b2=b-d2*b1;
+    t1=a1*b2+a2*b1;
+    t2=floor(t1/d2);
+    t3=t1-d2*t2;
+    t4=d2*t3+a2*b2;
+    t5=floor(t4/d1);
+    c=t4-d1*t5;
+ 
+    return(c);
+  }
+ 
+inline double[] GenRndArray( int[] shp)
+{
+  rnds = genarray([TN], 0d);
+  a    = pow(5.0d,13.0d);
+  s    = 271828183.0d;
+  d    = pow(2.0d,46.0d);
+  d1   = pow(2.0d,46.0d);
+  d2   = pow(2.0d,23.0d);
+
+  rnd = s;
+  for (j=0; j<shp[0]; j++)
+      {
+        rnd = my_mod(a, rnd, d1, d2);
+        rnds[j] = rnd/d;
+    }
+  return(rnds);
+}
+
+double[] take_subgrid( int[] offset, int[] spread, double[] a)
+{
+  res = with( . <= iv <= . )
+        genarray( [N], a[iv*spread+offset]);
+  return(res);
+}
+
+int main ()
+  {
+
+    rnds = GenRndArray([TN]);
+    x = take_subgrid([0], [2], 2d*rnds-1d);
+    y = take_subgrid([1], [2], 2d*rnds-1d);
+
+    t = x*x + y*y;
+    
+    filter = (t<=1d);
+    x = with( .<= iv <= .) {
+          if( filter[iv]) {
+            val = x[iv] * sqrt(((-2) * log(t[iv]))/ t[iv]);
+          } else {
+            val = x[iv];
+          }
+        } modarray( x, iv, val);
+    
+    y = with( .<= iv <= .) {
+          if( filter[iv]) {
+            val = y[iv] * sqrt(((-2) * log(t[iv]))/ t[iv]);
+          } else {
+            val = y[iv];
+          }
+        } modarray( y, iv, val);
+    
+    Q = with( [0] <= [i] <= [9]) {
+          num = with( [0] <= iv < [N]) {
+                  if( (filter[iv]) 
+                      && (tod(i) <= max( fabs(x[iv]), fabs(y[iv])))
+                         && ( max( fabs(x[iv]), fabs(y[iv])) < tod(i+1)) ) {
+                    ival = 1;
+                  } else {
+                    ival = 0;
+                  }
+                } fold( +, ival);
+        } genarray( [10], num);
+
+    sxk = with( [0]<= iv <= shape(x)) {
+            if( filter[iv]) {
+              val = x[iv];
+            } else {
+              val = 0d;
+            }
+          } fold( +, val);
+
+    syk = with( [0]<= iv <= shape(y)) {
+            if( filter[iv]) {
+              val = y[iv];
+            } else {
+              val = 0d;
+            }
+          } fold( +, val);
+
+    print( Q);
+    print( "\n sxk: ");
+    print(sxk);
+    print( "\n syk: ");
+    print(syk);
+    print( "\n");
+
+    return(0);
+}
