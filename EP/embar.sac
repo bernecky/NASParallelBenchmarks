@@ -22,7 +22,7 @@ inline double my_mod(double a, double b, double d1, double d2)
 #define N 4194304
 #define N2 8388608
 
-double[] CreateRands( int num, double seed, double a, double d1, double d2 )
+double[.] CreateRands( int num, double seed, double a, double d1, double d2 )
 {
   res = genarray( [N2], seed);
   for( i=1; i<num; i++) {
@@ -31,15 +31,17 @@ double[] CreateRands( int num, double seed, double a, double d1, double d2 )
   return( res);
 }
 
-inline int[] ModarrayMasked( bool[] pred, int[] a, int def_val)
+inline int[*] ModarrayMasked( bool[*] pred, int[*] a, int def_val)
 {
-  res = with( .<= iv <= .) {
-          if( pred[iv]) {
-            val = def_val;
-          } else {
-            val = a[iv];
-          }
-        } modarray( a, iv, val);
+  res = with{
+    ( .<= iv <= .) {
+      if( pred[iv]) {
+        val = def_val;
+      } else {
+        val = a[iv];
+      }
+    } : val;
+    } : modarray( a);
   return( res);
 }
 
@@ -53,37 +55,40 @@ int[] IncAt( int[] a, int[] idxs)
   return( a);
 }
 
-int[] IncAt_mt( int[] a, int[] idxs)
+int[*] IncAt_mt( int[*] a, int[*] idxs)
 {
-  res = with( .<= iv <= .) {
-          val = sum( toi(idxs == iv[0]));
-        } genarray( shape(a), val);
+  res = with{
+    ( 0*shape(a) <= iv <= shape(a)) : sum( toi(idxs == iv[0]));
+  } : genarray( shape(a), 0);
   return( res);
 }
 
-inline double[] InnerProducts( double[] vs, double[] ws)
+inline double[*] InnerProducts( double[*] vs, double[*] ws)
 {
-  res = with( . <= iv <= .)
-        genarray( drop( [-1], shape( ws)), InnerProduct( vs[iv], ws[iv]));
+  res = with {
+    ( . <= iv <= .) : InnerProduct( vs[iv], ws[iv]);
+    } : genarray( drop( [-1], shape( ws)), 0.0);
   return( res);
 }
 
-inline double InnerProduct( double[] v, double[] w)
+inline double InnerProduct( double[.] v, double[.] w)
 {
   return( sum( v * w));
 }
 
-inline double[] MultOnDim( int d, double[] a, double[] b)
+inline double[*] MultOnDim( int d, double[*] a, double[*] b)
 {
-  res = with( .<= iv <=.)
-        genarray( shape(a), a[iv] * b[iv[[d]]]);
+  res = with {
+    ( .<= iv <=.) : a[iv] * b[iv[[d]]];
+    } : genarray( shape(a), 0.0);
   return( res);
 }
 
-inline double[] Maxima( double[] vs)
+inline double[*] Maxima( double[*] vs)
 {
-  res = with( . <= iv <= .)
-        genarray( drop( [-1], shape( vs)), max( vs[iv][[0]], vs[iv][[1]]));
+  res = with {
+    ( . <= iv <= .) : max( vs[iv][[0]], vs[iv][[1]]);
+  } : genarray( drop( [-1], shape( vs)), 0.0);
   return( res);
 }
 
@@ -91,7 +96,7 @@ int main ()
   {
 
     /* Initialisierungen */
-    size = FibreScanInt(); 
+    size = FibreScanInt(stdin); 
     n    = pow(2.0d, tod(size));
     a    = pow(5.0d,13.0d); 
     s    = 271828183.0d;
@@ -154,7 +159,7 @@ int main ()
 
   vects = 2.0 * (rands/d) - 1.0;
 
-z = vects[[0,0]]; /* WLF prevention */
+  z = vects[[0,0]]; /* WLF prevention */
 
   tj = InnerProducts( vects, vects);
 
@@ -165,18 +170,18 @@ z = vects[[0,0]]; /* WLF prevention */
   fl = ModarrayMasked( (tj > 1.0), fl, -1);
   Q = IncAt_mt( Q, reshape([N,1], fl));
 
-printf( "dummy z: %g\n", z); /* WLF prevention */
+  printf( "dummy z: %g\n", z); /* WLF prevention */
 
 #endif
 
     /* Ausgabe der Ergebnisse */
     
     print( Q);
-    print( "\n sxk: ");
+    printf( "\n sxk: ");
     print(sxk);
-    print( "\n syk: ");
+    printf( "\n syk: ");
     print(syk);
-    print( "\n");
+    printf( "\n");
     
     return(0);
   }
