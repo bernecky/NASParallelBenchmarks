@@ -22,7 +22,7 @@ inline double my_mod(double a, double b, double d1, double d2)
 #define N 4194304
 #define N2 8388608
 
-double[.] CreateRands( int num, double seed, double a, double d1, double d2 )
+inline double[N2] CreateRands( int num, double seed, double a, double d1, double d2 )
 {
   res = genarray( [N2], seed);
   for( i=1; i<num; i++) {
@@ -41,7 +41,7 @@ inline int[*] ModarrayMasked( bool[*] pred, int[*] a, int def_val)
         val = a[iv];
       }
     } : val;
-    } : modarray( a);
+  } : modarray( a);
   return( res);
 }
 
@@ -55,7 +55,7 @@ int[] IncAt( int[] a, int[] idxs)
   return( a);
 }
 
-int[*] IncAt_mt( int[*] a, int[*] idxs)
+int[.] IncAt_mt( int[10] a, int[.,.] idxs)
 {
   res = with{
     ( 0*shape(a) <= iv <= shape(a)) : sum( toi(idxs == iv[0]));
