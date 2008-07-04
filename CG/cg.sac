@@ -23,73 +23,6 @@ import Math : all;
 use PTimer: all;
 use RandLC: all;    
 
-/* N                 : Number of rows & columns
- * NITER             : Number of iterations
- * LAMBDA            : Shift of the main diagonal of a sparse Matrix A
- * NONZER            : Number of non zeros
- * ZETA_VERIFY_VALUE : The correct Zeta
- */
-#ifdef CLASSW
-#define PROB   "W"
-#define N      7000
-#define NITER  15
-#define LAMBDA 12d
-#define NONZER 8
-#define ZETA_VERIFY_VALUE 10.362595087124d
-#define RCOND 0.1d
-#endif
-
-#ifdef CLASSA
-#define PROB   "A"
-#define N      14000
-#define NITER  15
-#define LAMBDA 20d
-#define NONZER 11
-#define ZETA_VERIFY_VALUE 17.130235054029d
-#define RCOND 0.1d
-#endif
-
-#ifdef CLASSB
-#define PROB   "B"
-#define N      75000
-#define NITER  75
-#define LAMBDA 60d
-#define NONZER 13
-#define ZETA_VERIFY_VALUE 22.712745482631d
-#define RCOND 0.1d
-#endif
-
-#ifdef CLASSC
-#define PROB   "C"
-#define N      150000
-#define NITER  75
-#define LAMBDA 110d
-#define NONZER 15
-#define ZETA_VERIFY_VALUE 28.973605592845d
-#define RCOND 0.1d
-#endif
-
-#ifdef CLASSD
-#define PROB   "D"
-#define N      1500000
-#define NITER  100
-#define LAMBDA 500d
-#define NONZER 21
-#define ZETA_VERIFY_VALUE 52.5145321058d
-#define RCOND 0.1d
-#endif
-
-#ifndef PROB
-#define PROB   "S"
-#define N      1400
-#define NITER  15
-#define LAMBDA 10d
-#define NONZER 7
-#define ZETA_VERIFY_VALUE 8.5971775078648d 
-#define RCOND 0.1d
-#endif
-
-
 /*							
  * Multiplying a Matrix formed by a triple:		
  *	(a,rowstr,colidx) and a Vector "p"		
@@ -167,7 +100,7 @@ double[.], double cg( double[.] a ,int[.] rowstr, int[.] colidx, double[.] x){
  *	JA     :					
  *							
  */
-double[.], int[.], int[.] makea (int n){
+double[.], int[.], int[.] makea (int n, int NONZER, int RCOND, int LAMBDA){
 
   arow = genarray([n],0);
   acol = genarray([n,NONZER+1],-1);
@@ -199,7 +132,7 @@ double[.], int[.], int[.] makea (int n){
     } 
   }
        /*  ... make the sparse matrix from the list of elements with duplicates  */
- a,colidx,rowstr = sparse(arow,acol,aelt,n);
+ a,colidx,rowstr = sparse(arow,acol,aelt,n, NONZER, RCOND, LAMBDA);
 return (a,colidx,rowstr);
 }
 
@@ -279,7 +212,8 @@ int, double [.], int[.] vecset (int n,double[.] v, int[.]iv, int nzv, int i,doub
  * Input: arow, acol, aelt						
  * Output: a, rowstr, colidx				
  */
-double [.], int[.], int[.] sparse(int[.] arow, int[.,.] acol, double[.,.] aelt, int n) { 
+double [.], int[.], int[.] sparse(int[.] arow, int[.,.] acol, double[.,.] aelt,
+                                  int n, int NONZER, int RCOND, int LAMBDA) { 
   nz = n *(NONZER+1)*(NONZER+1);
 
   rowstr = genarray([n+1],0);
@@ -300,7 +234,7 @@ double [.], int[.], int[.] sparse(int[.] arow, int[.,.] acol, double[.,.] aelt, 
   nza = rowstr[[n]]-1;   
         /* ... generate actual values by summing duplicates */
 
-  ratio = pow(RCOND,1d/tod(n));
+  ratio = pow(tod(RCOND),1d/tod(n));
        /* The weights wi are a geometric sequence with a first value w=1d 
         * and the ratio chosen so that wN = 0.1d 
         */
@@ -316,7 +250,7 @@ double [.], int[.], int[.] sparse(int[.] arow, int[.,.] acol, double[.,.] aelt, 
                * to bound the smallest eigenvalue from below by rcond 
                */
         if ( (jcol==j) & (j==i) ){
-          va = va + RCOND - LAMBDA;
+          va = va + tod(RCOND) - tod(LAMBDA);
         }
                /* ...insertelts   */
 	found = false;
@@ -414,14 +348,26 @@ ptime, double[.] getinitStopa( double[.] a) {
  ******************************************************************************/
 int main() {
 
+  /* N                 : Number of rows & columns
+ * NITER             : Number of iterations
+ * LAMBDA            : Shift of the main diagonal of a sparse Matrix A
+ * NONZER            : Number of non zeros
+ * ZETA_VERIFY_VALUE : The correct Zeta
+ */
+  N = FibreScanInt(stdin);
+  NITER = FibreScanInt(stdin);
+  LAMBDA = FibreScanInt(stdin);
+  NONZER = FibreScanInt(stdin);
+  ZETA_VERIFY_VALUE = FibreScanDouble(stdin);
+
   printf("\n\n SAC Parallel Benchmarks (NPB3.2-SAC)"
               " - CG Benchmark\n");
-  n = N; nz = n *(NONZER+1)*(NONZER+1);
+  n = N; nz = n *(toi(NONZER)+1)*(toi(NONZER)+1);
   a = genarray([nz],0d);
        /* ... Measure Initialisation Time  */
   init_start, a = getinitStarta(a);
        /* ... generate the input sparse Matrix A which is formed by a triple (a, colidx, rowstr) */
-  a,colidx,rowstr = makea(n);
+  a,colidx,rowstr = makea(n, toi(NONZER), NONZER, LAMBDA);
   x = genarray([n],1d);
   zeta = 0d;
   init_end, a = getinitStopa(a);
@@ -438,7 +384,7 @@ int main() {
   start, n = getStartTime(N);
   for (it=1;it<=NITER;it++){ 
     z,rnorm = cg(a,rowstr,colidx, x);
-    zeta = LAMBDA + (1d/(sum(x*z)));
+    zeta = tod(LAMBDA) + (1d/(sum(x*z)));
     printf("\n       %2d       %.14E    %.13f",it,rnorm,zeta);
     x = z*(1d/sqrt(sum(z*z)));    
   }
@@ -465,13 +411,12 @@ int main() {
   }
 
   if( elapsed != 0d ) { 
-    mflops = tod( 2*NITER*N ) * ( 3d+tod( NONZER*(NONZER+1) )+ 25d *(5d +tod( NONZER*(NONZER+1) ))+ 3d ) / elapsed / 1000000.0d;
+    mflops = tod( 2*NITER*N ) * ( 3d+tod( NONZER*(NONZER+1) )+ 25d *(5d +tod( tod(NONZER)*(tod(NONZER)+1d) ))+ 3d ) / elapsed / 1000000.0d;
   }
   else mflops = 0d;
   printf("\n\n CG Benchmark Completed.\n");
 
-  printf(" Class\t\t =\t%s\n"
-         " Size\t\t =\t%d\n"			/*	Problem size	*/
+  printf(" Size\t\t =\t%d\n"			/*	Problem size	*/
          " Iterations\t =\t%d\n"
          " Time in seconds =\t%f\n"
          " Mop/s total     =\t%f\n"		/*        RATE	       */
@@ -479,7 +424,7 @@ int main() {
          " Verification    =\t%s\n"
          " Version\t =\t3.2.1\n"
          " Compile date\t =\t"__DATE__"  \n\n\n",
-         PROB,N,NITER,elapsed,mflops,verif);
+         N,NITER,elapsed,mflops,verif);
 
   return(0);
 }
