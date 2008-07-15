@@ -1,0 +1,51 @@
+Module Cpx2:
+
+import Array: all;
+
+typedef double cpx;
+
+
+inline
+cpx[2] + (cpx[2] a, cpx[2] b) 
+{
+  x = (:double[2]) a;
+  y = (:double[2]) b;
+  
+  res = [x[0]+y[0] , x[1]+y[1]];
+  
+  return((:cpx[2])res);
+}
+
+
+inline
+cpx[2] * (cpx[2] a, cpx[2] b) 
+{
+  x = (:double[2]) a;
+  y = (:double[2]) b;
+  
+  res = [x[0]*y[0] - x[1]*y[1], x[0]*y[1] + x[1]*y[0]];
+  
+  return((:cpx[2])res);
+}
+
+/*
+inline
+int[+] shp(cpx[+] a)
+{
+  return( shape(a));
+}
+*/
+
+inline
+cpx[+] + (cpx[+] a, cpx[+] b)
+{
+  x = with (.<=iv<=.) genarray(shape(a), (:double) a[iv]);
+  
+  y = (:double[+]) b;
+
+  res = with (.<=iv<=.)
+  genarray(shape(a), a[iv]  + b[iv]);
+  
+  return(a);
+}
+

@@ -1,0 +1,25 @@
+ModuleDec Support :
+
+import Complex: all;
+own:
+{
+implicit types:
+
+explicit types:
+
+global objects:
+
+functions:
+  double my_mod(double a, double b, double d1, double d2);
+  double rand_element(int[4] iv, int[4] sh, double seed, double c1, double c2, double c3, double a);
+  double[128, 128, 32, 2] Initialize2(double[128, 128, 32, 2] A);
+  double[128, 128, 32, 2] Initialize1(double[128, 128, 32, 2] A);
+  int[128, 128, 32] ComputeIndexmap(int[128, 128, 32] map);
+  double[50689] ComputeExponentialmap(double[50689] map);
+  double[64, 2] RootsOfUnity(double[64, 2] u, int dir);
+  int[3] sel_ovr(int[3] iv, int[3] A);
+  double[+] Transpose(int[+] v, double[+] A);
+  double[128, 128, 32, 2] Evolve(double[128, 128, 32, 2] V, int t, int[+] index, double[50689] ex);
+  Complex:complex Checksum(double[128, 128, 32, 2] X);
+  Complex:complex Validate(int iter);
+}

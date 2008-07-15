@@ -1,0 +1,192 @@
+import Support: all;
+
+import Array: all;
+import StdIO: all; 
+import Complex: all;
+import Math: all;
+import ArrayIO: all;
+
+
+
+
+
+
+
+inline double[+] ShuffleLeft(double[+] v)
+{
+  res = with(.<=[i,j]<=.   ) {
+  } genarray(shape(v) / 2 +[0,1],v[i*2,j]);
+ return( res);
+}
+
+
+
+inline double[+] ShuffleRight(double[+] v)
+{
+  res = with(.<=[i,j]<=.   ) {
+  } genarray(shape(v) / 2 +[0,1],v[i*2+1,j]);
+ return( res);
+}
+
+
+/************************** BEGIN OF FFT-Kernel**********************/
+
+inline double[4,2] ComplexFFT(double dir, double[4,2] v, double[NX_2,2] rofu)
+{
+ 
+    w0 = toc(v[0]) + toc(v[2]);
+    w1 = toc(v[0]) - toc(v[2]);
+    w2 = toc(v[1]) + toc(v[3]);
+
+    w3 = dir * i() * ( toc(v[1]) - toc(v[3]) );
+
+
+    t0 = todv( w0 + w2 );
+    t1 = todv( w1 + w3 );
+    t2 = todv( w0 - w2 );
+    t3 = todv( w1 - w3 );
+    t = reshape( [4,2],[t0[0],t0[1],t1[0],t1[1],t2[0],t2[1],t3[0],t3[1]]);
+    return(t);
+}
+
+
+
+
+
+double[+] ComplexFFT(double dir, double[+] v, double[NX_2,2] rofu)
+{
+  size=shape(v)[0];
+  m = size /2;
+ 
+  index = NX / size;
+
+  left_v = ShuffleLeft(v);
+  right_v= ShuffleRight(v);
+ 
+  fft_left = ComplexFFT(dir, left_v , rofu);
+  fft_right = ComplexFFT(dir, right_v , rofu);
+
+  fft_right_rofu = with([0,0]<=iv=[i,j]<[m,1]) {
+    res = fft_right[iv] * rofu[i*index,0] 
+          - fft_right[i,1] * rofu[i*index,1];
+  }  modarray(fft_right,iv,res);
+
+
+  fft_right_rofu = with([0,1]<=iv=[i,j]<[m,2]) {
+    res = fft_right[iv] * rofu[i*index,0] 
+          + fft_right[i,0] * rofu[i*index,1];
+  }  modarray(fft_right_rofu,iv,res);
+
+
+  fft_right_rofu[0,0] = fft_right_rofu[0,0];
+
+  tmp = cat(0,fft_left+fft_right_rofu,fft_left-fft_right_rofu   );
+
+  return(tmp);
+} 
+
+
+
+
+/* slices array in direction (k), calculates fft(), */
+/* reassebles slices to array */
+
+inline double[+] ComplexFFTSlice(double dir,double[+] in,double[NX_2,2] rofu)
+{  
+	
+  result = with( [0,0] <= iv=[x,y] <[shape(in)[0],shape(in)[1]] ){
+	
+    slice_fft = ComplexFFT(dir ,in[x,y] , rofu);
+
+  } modarray(in,iv, slice_fft);
+ return(result);
+}
+
+
+
+
+
+
+
+
+
+/************** THIS IS THE TOP-LEVEL FFT-Func **********************/
+
+
+double[NX,NY,NZ,2] Complex3dFFT(double dir, double[NX,NY,NZ,2] in,double[NX_2,2] rofu)
+{ 
+  z = 0d;
+  if (dir > 0d) {
+    a = ComplexFFTSlice(1d,Transpose( [2,1,0], in), rofu)  ;
+    z = z+a[0,0,0,0];
+    b = ComplexFFTSlice(1d,Transpose( [0,2,1], a), rofu);
+    z = z+b[0,0,0,0];
+    result=ComplexFFTSlice(1d,Transpose( [2,0,1], b), rofu);
+  }
+  else { 
+     c = Transpose( [0,2,1], ComplexFFTSlice(-1d,in,rofu)); 
+    z = z+ c[0,0,0,0];
+    d = Transpose([2,1,0],ComplexFFTSlice(-1d,c,rofu));
+    z = z+d[0,0,0,0];
+    result=Transpose([1,2,0],ComplexFFTSlice(-1d,d,rofu) );
+ }
+/*  printf("%f\n", z);*/
+  return(result);
+}
+
+
+
+
+
+int main()
+{ 
+  total_size = NX*NY*NZ;
+  printf(" Dimension: %d x %d x %d, N-Iter: %d  Total Size: %d Complex\n",NX,NY,NZ,N,total_size);
+
+  indexmap = ComputeIndexmap(genarray([NX,NY,NZ],0));
+
+
+  expomap = ComputeExponentialmap(genarray([NEXP],0.0d));
+    
+
+  rofu = RootsOfUnity( genarray([NX_2],[0.0d,0.0d]) ,1); 
+
+  U = Initialize1(genarray([NX,NY,NZ],[0.0d,0.0d]));
+
+  V = Complex3dFFT(1d,U,rofu);
+
+  rofu = RootsOfUnity( genarray([NX_2],[0.0d,0.0d]) ,-1); 
+
+
+
+
+
+
+  /*****  Performing N iterations for timestep t *****************/
+
+  for (t=1 ; t<=N ; t++) {
+    
+    W = Evolve(V,t,indexmap,expomap);
+ 
+    X = Complex3dFFT(-1d,W,rofu) / tod(total_size);
+
+    check = Checksum(X);
+    printf("Ergebnis: ");
+    print(check);
+    printf("   Soll: ");
+    print(Validate(t));
+    printf("\n");
+
+   }
+  
+  
+    
+  
+  return(0);
+}
+
+
+
+
+
+

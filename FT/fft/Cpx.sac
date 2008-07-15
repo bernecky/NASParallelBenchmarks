@@ -1,0 +1,68 @@
+Module Cpx:
+
+import Array: all;
+
+typedef double[2] cpx;
+
+
+inline
+cpx + (cpx a, cpx b) 
+{
+  x = (:double[2]) a;
+  y = (:double[2]) b;
+  
+  res = [x[0]+y[0] , x[1]+y[1]];
+  
+  return((:cpx)res);
+}
+
+
+inline
+cpx * (cpx a, cpx b) 
+{
+  x = (:double[2]) a;
+  y = (:double[2]) b;
+  
+  res = [x[0]*y[0] - x[1]*y[1], x[0]*y[1] + x[1]*y[0]];
+  
+  return((:cpx)res);
+}
+
+
+inline
+int[+] shp(cpx[+] a)
+{
+  return( shape(a));
+}
+
+
+
+inline
+cpx[+] + (cpx[+] a, cpx[+] b)
+{
+
+  res = with (.<=iv<=.)
+  genarray(shape(a), ((:double[+])a)[iv] + ((:double[+])b)[iv]); 
+  
+  return( res);
+}
+
+
+inline
+cpx[+] * (cpx[+] a, cpx[+] b)
+{
+  aa = (:double[+]) a;
+  bb = (:double[+]) b;
+  
+  ub_real = shape(aa);
+  ub_real[shape(ub_real)[[0]] - 1] = 1;
+  
+  res = with (. <= iv < ub_real) 
+    {
+      val = aa[iv] * bb[iv];
+    }
+  genarray(shape(a), val);
+  
+  return(res);
+}
+

@@ -1,0 +1,119 @@
+#ifndef ITER
+#define ITER 10
+#endif
+
+import Array: all;
+import StdIO: all; 
+import Math: all;
+import ArrayIO: all;
+
+
+inline 
+double[+] Transpose( int[+] permv, double[+] A)
+{
+  res = with( .<= iv <= .)
+        {
+          ivt = TransposeSelect( permv, iv);
+#ifndef NOTRICKS
+          ivt = [ivt[[0]], ivt[[1]], ivt[[2]]]; 
+#endif
+          val = A[ivt];
+        }
+        genarray([shape(A)[[permv[[0]]]],
+                  shape(A)[[permv[[1]]]],
+                  shape(A)[[permv[[2]]]]], 
+                  val);
+
+  return( res);
+}
+
+inline 
+int[+] InvertPermVect(int[+] pv) 
+{
+  pv_inv = with (. <= iv <= .)
+           {
+             val = 0;
+             for (i=0; i<shape(pv)[[0]]; i++) {
+               if (pv[[i]] == iv[[0]]) {
+                 val = i;
+               }
+             }
+           }
+           modarray(pv, iv, val);
+
+  return(pv_inv);
+}
+
+
+inline 
+int[+] TransposeSelect( int[+] permv, int[+] indexv)
+{
+  permv_inv = InvertPermVect(permv);
+  
+  res = with (. <= iv < shape(permv))
+        modarray( indexv, iv, indexv[[permv_inv[iv]]]);
+  
+  return( res);
+}
+
+
+
+double[+] FFT1d_Slice( double[+] a)
+{ 
+  result = with( [0,0] <= iv < [100,100] )
+           {
+             slice = FFT1d(a[iv]);
+           }
+           modarray( a, iv, slice);
+
+  return( result);
+}
+
+
+
+double[+] FFT3d(double[+] a)
+{ 
+  a_t = Transpose( ([2,1,0]), a);
+  b   = FFT1d_Slice( a_t);
+  b_t = Transpose( ([0,2,1]), b);
+  c   = FFT1d_Slice( b_t);
+  c_t = Transpose( ([1,2,0]), c);
+  d   = FFT1d_Slice( c_t);
+
+  return( d);
+}
+
+
+double[+] FFT1d( double[+] a)
+{
+  return( a+1d);
+}
+
+
+double[+] FFT3d_acn(double[+] a)
+{ 
+  b = { [.,y,z] -> FFT1d( a[.,y,z]) };
+  c = { [x,.,z] -> FFT1d( a[x,.,z]) };
+  d = { [x,y,.] -> FFT1d( a[x,y,.]) };
+  
+  return( d);
+}
+
+
+int main()
+{
+  a = genarray([100,100,100], 1d);
+  
+  for (i=0; i<ITER; i++) {
+    
+#ifdef ACN
+    a = FFT3d_acn(a);
+#else
+    a = FFT3d(a);
+#endif
+  }
+  
+  return( toi(a[0,0,0]));
+}
+
+

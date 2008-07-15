@@ -1,0 +1,789 @@
+
+import Array: all;
+import StdIO: all; 
+import Complex: all;
+import Math: all;
+import ArrayIO: all;
+
+
+
+
+/************************** cpx **********************/
+
+typedef double[2] cpx;
+
+
+inline
+cpx + (cpx a, cpx b) 
+{
+  x = (:double[2]) a;
+  y = (:double[2]) b;
+  
+  res = [x[0]+y[0] , x[1]+y[1]];
+  
+  return((:cpx)res);
+}
+
+
+inline
+cpx * (cpx a, cpx b) 
+{
+  x = (:double[2]) a;
+  y = (:double[2]) b;
+  
+  res = [x[0]*y[0] - x[1]*y[1], x[0]*y[1] + x[1]*y[0]];
+  
+  return((:cpx)res);
+}
+
+
+
+inline
+cpx[+] + (cpx[+] a, cpx[+] b)
+{
+
+  res = with (.<=iv<=.)
+  genarray(shape(a), ((:double[+])a)[iv] + ((:double[+])b)[iv]); 
+  
+  return((:cpx[+])res);
+}
+
+
+
+
+cpx[+] * (cpx[+] a, cpx[+] b)
+{
+  aa = (:double[+]) a;
+  bb = (:double[+]) b;
+  
+  ub_real = shape(aa);
+  ub_real[shape(ub_real) - 1] = 1;
+  
+  lb_imag = 0 * shape(aa);
+  lb_imag[shape(lb_imag) - 1] = 1;
+  
+  res = with (. <= iv < ub_real) 
+        {
+          val = aa[iv] * bb[iv] - aa[iv+lb_imag] * bb[iv+lb_imag];
+        }
+        genarray(shape(aa), val);
+  
+  res = with (lb_imag <= iv <= .) 
+        {
+          val = aa[iv-lb_imag] * bb[iv] + aa[iv] * bb[iv-lb_imag];
+        }
+        modarray( res, iv, val);
+  
+
+  return((:cpx[+])res);
+}
+
+
+cpx[+] Transpose( int[+] permv, cpx[+] A)
+{
+  AA = (:double[+]) A;
+
+  res = with( .<= iv <= .)
+        {
+          ivt = TransposeSelect( permv, iv);
+#ifndef NOTRICKS
+          ivt = [ivt[[0]], ivt[[1]], ivt[[2]], ivt[[3]]]; 
+#endif
+          val = AA[ivt];
+        }
+        genarray([shape(AA)[[permv[[0]]]],
+                  shape(AA)[[permv[[1]]]],
+                  shape(AA)[[permv[[2]]]],
+                  2], 
+                  val);
+
+  return( (:cpx[+])res);
+}
+
+
+inline int[+] InvertPermVect(int[+] pv) 
+{
+  pv_inv = with (. <= iv <= .)
+           {
+             val = 0;
+             for (i=0; i<shape(pv)[[0]]; i++) {
+               if (pv[[i]] == iv[[0]]) {
+                 val = i;
+               }
+             }
+           }
+           modarray(pv, iv, val);
+
+  return(pv_inv);
+}
+
+
+inline int[+] TransposeSelect( int[+] permv, int[+] indexv)
+{
+  permv_inv = InvertPermVect(permv);
+  
+  res = with (. <= iv < shape(permv))
+        modarray( indexv, iv, indexv[[permv_inv[iv]]]);
+  
+  return( res);
+}
+
+/************************** former support lib **********************/
+
+
+
+inline double my_mod(double a, double b, double d1, double d2)
+  {
+    a1=floor(a/d2);
+    a2=a-d2*a1;
+    b1=floor(b/d2);
+    b2=b-d2*b1;
+    t1=a1*b2+a2*b1;
+    t2=floor(t1/d2);
+    t3=t1-d2*t2;
+    t4=d2*t3+a2*b2;
+    t5=floor(t4/d1);
+    c=t4-d1*t5;
+
+    return(c);
+  }
+
+
+
+
+/* calculates the k-th random element corresponding to int[+] iv */
+
+inline double rand_element(int[4] iv,int[4] sh, double seed,
+                           double c1, double c2, double c3, double a)
+{
+
+  index = iv[3]+sh[3]*(iv[0]+sh[0]*(iv[1]+iv[2]*sh[1])) + 1;
+  k= index;
+  m=toi(ceil( log(tod(k)) / log(2.0) )); /* let m be the smallest Integer */
+  if ( toi(pow(2.0,tod(m))) == k )          /* such that  2^m > k */
+    m=m+1;                               /* m sizes the for-loop */
+  
+  b = seed;                       /* init some variables */
+  t = a;
+
+  
+  for (i=1 ; i<=m ; i++) {
+    j = k/2;
+    
+    if (2*j != k)
+      b = my_mod( b , t , c1,c3);    
+    t = my_mod(t , t ,c1,c3);
+    k=j;
+  }
+  
+  return( b*c2);
+
+}
+
+
+
+
+
+
+
+/* Init A with pseudorandom numbers defined by NAS
+ * To get the right order of pseudorandom numbers, each must be 
+ * calculated seperatly
+ */
+
+inline double[+] Initialize2(double[+] A)
+{
+  a = pow(5d,13d);   
+  const1 = pow(2.0,46.0);
+  const2 = pow(2.0,-46.0);
+  const3 = pow(2d,23d);
+
+  seed = 314159265d;               /* some consts */
+  A = with(.<=iv<=.)
+      {
+        res = rand_element( iv, shape(A), seed, const1, const2, const3, a);
+      }
+      modarray( A, iv, res);
+  
+
+
+  return(A);
+} 
+
+
+
+
+/* Init A with pseudorandom numbers defined by NAS
+ * Calculated sequentielly 
+ */
+
+
+inline double[+] Initialize()
+{
+  A = genarray([NX,NY,NZ,2], 0d);
+  
+  seed=314159265d;
+  rand = seed;
+  a = pow(5d,13d);   
+  const1 = pow(2d,46d);
+  const2 = pow(2d,-46d);
+  const3 = pow(2d,23d);
+
+  n1=shape(A)[0];
+  n2=shape(A)[1];
+  n3=shape(A)[2];
+
+  for(z=0 ; z <n3  ; z++) {
+    for(y=0 ; y <n2  ; y++) {
+      for(x=0 ; x <n1  ; x++) {
+	for(i=0 ; i<2 ; i++) {
+	  rand = my_mod (a , rand, const1, const3) ;
+          A[x,y,z,i] = rand * const2 ;
+	}
+      }
+    }
+  }
+  return(A);
+} 
+
+
+
+
+
+/* The indexmap[+] is used for evolve(), and has to be calculated once */
+/* compute function from local (i,j,k) to i^2+j^2+k^2 */
+/* for time evaluation exponent */
+
+/*********** no inlining possible ******************/
+
+#ifdef FRISO
+int[+] ComputeIndexMap()
+{
+  map = with(.<=iv=[i,j,k]<=.) {
+    ii = ( (i+NX/2) % NX ) - NX/2;
+    jj = ( (j+NY/2) % NY ) - NY/2;
+    kk = ( (k+NZ/2) % NZ ) - NZ/2;
+    ttt = ii*ii+jj*jj+kk*kk;
+  } genarray( [NX,NY,NZ], ttt);
+
+  return(map);
+}
+#else
+int[+] ComputeIndexMap()
+{
+  map = genarray( [NX,NY,NZ], 0);
+  map = with(. <= iv <= .)
+        {
+          iv_scramble = ((iv + shape(map) / 2) % shape(map)) - shape(map) / 2;
+          val = sum( iv_scramble*iv_scramble);
+        }
+        modarray( map, iv, val);
+
+  return(map);
+}
+#endif
+
+
+
+/* some exponential terms will be precomputed.
+ * They are used in Evolve() for time-evaluation
+ */
+
+
+#ifdef FRISO
+inline double[+] ComputeExponentialMap()
+{
+  map = genarry([NEXP], 0d);
+  
+  alpha = pow(10d,-6d);
+  ap = -4d * alpha * pi() * pi();
+  map[0] = 1d;
+  map[1] = exp(ap);
+
+  for (i=2; i<shape(map)[0];i++ )
+    map[i] = map[i-1] * map[1];
+
+  return(map);
+
+}
+#else
+double[+] ComputeExponentialMap()
+{
+  map = genarray([NEXP], 0d);
+  
+  alpha = -4d * pow(10d,-6d) * pi() * pi();
+
+  map[0] = 1d;
+  map[[1]] = exp(alpha);
+
+  for (i=2; i<shape(map)[[0]]; i++ ) {
+    map[[i]] = map[[i-1]] * map[[1]];
+  }
+  
+  return(map);
+}
+
+#endif
+
+
+
+
+
+/* Initializes the double[+] u with sines and cosines  
+ * so called Roots Of Unity. Used by ComplexFFT()
+ */
+
+double[+] RootsOfUnity( double dir)
+{
+  u = genarray([NX_2,2], 0d);
+  
+  theta = dir * pi() / tod(shape(u)[[0]]);
+  wp = toc(cos(theta) - 1d , sin(theta)  );
+
+  u[0]=[1d,0d];
+
+  for (i=1; i<shape(u)[0] ; i++) {
+    u[[i]] = todv( toc(u[[i-1]]) * wp + toc(u[[i-1]]));
+  }
+    
+  return(u); 
+}
+
+
+#ifndef CPX
+
+#define Transpose( permv, A)                                                            \
+ with( .<= iv=[x,y,z] <= .)                                                             \
+ genarray( [shape(A)[[permv[[0]]]],shape(A)[[permv[[1]]]],shape(A)[[permv[[2]]]]],      \
+           A[ TransposeSelect( permv, iv) ] )
+
+#endif
+
+
+
+
+
+
+/* Here the time-evaluation is done 
+ */
+
+#ifdef FRISO
+inline double[+] Evolve( double[+] V, int t, int[+] index, double[+] expo)
+{
+  res = with([0,0,0]<=iv=[i,j,k]<[NX,NY,NZ]) {
+    newindex = t*index[i,j,k];
+    exponent = expo[[newindex]];
+    temp = toc(V[i,j,k]) * exponent;
+  } modarray(V,iv,todv(temp));
+
+  return(res);
+}
+#else
+
+#ifndef EVOLVE
+#define EVOLVE 1
+#endif
+
+#if (EVOLVE == 1)
+
+inline double[+] Evolve( double[+] V, int t, int[+] index, double[+] expo)
+{
+  res = with (. <= iv=[i,j,k,l] <= .)
+       {
+         newindex = t*index[i,j,k];
+         exponent = expo[[newindex]];
+         val = V[iv] * exponent;
+       }
+       modarray( V, iv, val);
+
+  return(res);
+}
+
+#else
+
+inline double[+] Evolve( double[+] V, int t, int[+] index, double[+] expo)
+{
+  res = with ( . <= iv <= .)
+       {
+         newindex = t * index[iv];
+         exponent = expo[[newindex]];
+         val = V[iv] * exponent;
+       }
+       genarray( shape(index), val);
+
+  return(res);
+}
+
+#endif
+
+#endif
+
+
+
+/* Calculate the sum of 1024 elements for verification
+ */
+
+
+#define CPLX
+#ifdef CPLX
+
+complex Checksum( double[+] X)
+{
+  result = [0d,0d];
+
+  for (j=0 ; j<1024 ; j++) {
+    q = j % shape(X)[0];
+    r = (3 * j) % shape(X)[[1]];
+    s = (5 * j) % shape(X)[2];
+    result += X[[q,r,s]];
+  }
+  
+  return(toc(result));
+}
+
+#else
+
+double, double Checksum( double[+] X)
+{
+  real = 0d;
+  imag = 0d;
+
+  for (j=0 ; j<1024 ; j++) {
+    q = j % shape(X)[0];
+    r = (3 * j) % shape(X)[[1]];
+    s = (5 * j) % shape(X)[2];
+    real += X[[q,r,s,0]];
+    imag += X[[q,r,s,1]];
+  }
+  
+  return( real, imag);
+}
+
+#endif
+
+
+/* This Function returns the precomputed correct values for each 
+ * Class. 
+ */
+
+
+
+complex Validate(int iter)
+{
+
+#ifdef CLASS_U    /* Userdefined */
+  V = reshape([6,2],[0D,0D,
+		     0D,0D,
+		     0D,0D,
+		     0D,0D,
+		     0D,0D,
+		     0D,0D,]);
+
+#endif
+
+#ifdef CLASS_T
+  V = reshape([6,2],[
+		     537.7889159453D,603.2787954587D,
+		     537.2168198787D,602.3341297470D,
+		     536.6548010284D,601.4013243123D,
+		     536.1026866643D,600.4802068635D,
+		     535.5603071923D,599.5706078797D,
+		     535.0274960928D,598.6723605623D]);
+
+#endif
+
+
+#ifdef CLASS_S
+  V = reshape([6,2],[
+		     554.6087004964D,484.5363331978D,
+		     554.6385409189D,486.5304269511D,
+		     554.6148406171D,488.3910722336D,
+		     554.5423607415D,490.1273169046D,
+		     554.4255039624D,491.7475857993D,
+		     554.2683411902D,493.2597244941D]);
+#endif
+
+
+
+#ifdef CLASS_W
+  V =  reshape([6,2],[
+                     567.3612178944D,529.3246849175D,
+                     563.1436885271D,528.2149986629D,
+                     559.4024089970D,527.0996558037D,
+                     556.0698047020D,526.0027904925D, 
+                     553.0898991250D,524.9400845633D,
+                     550.4159734538D,523.9212247086D]);
+#endif     
+
+#ifdef CLASS_A
+  V=reshape([6,2],[
+		   504.6735008193,511.4047905510,
+		   505.9412319734,509.8809666433,
+		   506.9376896287,509.8144042213,
+		   507.7892868474,510.1336130759,
+		   508.5233095391,510.4914655194,
+		   509.1487099959,510.7917842803]);
+#endif     
+
+
+#ifdef CLASS_B
+  V = reshape([20,2],[
+		      517.7643571579,507.7803458597,
+		      515.4521291263,508.8249431599,
+		      514.6409228649,509.6208912659,
+		      514.2378756213,510.1023387619, 
+		      513.9626667737,510.3976610617,
+		      513.7423460082,510.5948019802,
+		      513.5547056878,510.7404165783,
+		      513.3910925466,510.8576573661,  
+		      513.2470705390,510.9577278523,
+		      513.1197729984,511.0460304483,
+		      513.0070319283,511.1252433800, 
+		      512.9070537032,511.1968077718,
+		      512.8182883502,511.2616233064,
+		      512.7393733383,511.3203605551,  
+		      512.6691062020,511.3735928093, 
+		      512.6064276004,511.4218460548,
+		      512.5504076570,511.4656139760,
+		      512.5002331720,511.5053595966,
+		      512.4551951846,511.5415130407,
+		      512.4146770029,511.5744692211]);
+   
+#endif 
+
+    
+
+return(toc(V[iter-1]));
+}
+
+
+/************************** Shuffle operations **********************/
+
+
+
+inline double[+] ShuffleLeft(double[+] v)
+{
+  res = with(.<=[i,j]<=.   ) {
+  } genarray(shape(v) / 2 +[0,1],v[i*2,j]);
+ return( res);
+}
+
+
+
+inline double[+] ShuffleRight(double[+] v)
+{
+  res = with(.<=[i,j]<=.   ) {
+  } genarray(shape(v) / 2 +[0,1],v[i*2+1,j]);
+ return( res);
+}
+
+
+/************************** BEGIN OF FFT-Kernel**********************/
+
+inline double[4,2] ComplexFFT(double dir, double[4,2] v, double[NX_2,2] rofu)
+{
+ 
+    w0 = toc(v[[0]]) + toc(v[[2]]);
+    w1 = toc(v[[0]]) - toc(v[[2]]);
+    w2 = toc(v[[1]]) + toc(v[[3]]);
+
+    w3 = dir * i() * ( toc(v[[1]]) - toc(v[3]) );
+
+
+    t0 = todv( w0 + w2 );
+    t1 = todv( w1 + w3 );
+    t2 = todv( w0 - w2 );
+    t3 = todv( w1 - w3 );
+    t = reshape( [4,2],[t0[[0]],t0[[1]],t1[[0]],t1[[1]],t2[[0]],t2[[1]],t3[[0]],t3[[1]]]);
+    return(t);
+}
+
+
+double[+] MultRofu(double[+] v, double[+] rofu)
+{
+  index = shape(rofu)[[0]] / shape(v)[[0]];
+
+  select_rofu = with (. <= iv <= .)
+                {
+                  val = rofu[[iv[[0]]*index, iv[[1]]]];
+                }
+                genarray( shape(v), val);
+  
+  prod = with ([0,0] <= iv < shape(v)-[0,1])
+         {
+           res = v[iv] * select_rofu[iv] 
+                 - v[iv+[0,1]] * select_rofu[iv+[0,1]];
+         }
+         modarray( v, iv, res);
+
+  prod = with ([0,1] <= iv < shape(v))
+         {
+           res = v[iv] * select_rofu[iv-[0,1]] 
+                 + v[iv-[0,1]] * select_rofu[iv];
+         }
+         modarray( prod, iv, res);
+
+  return(prod);
+}
+
+
+
+double[+] ComplexFFT(double dir, double[+] v, double[+] rofu)
+{
+  left_v = ShuffleLeft(v);
+  right_v= ShuffleRight(v);
+ 
+  fft_left = ComplexFFT(dir, left_v , rofu);
+  fft_right = ComplexFFT(dir, right_v , rofu);
+
+  fft_right_rofu = MultRofu(fft_right, rofu);
+
+  tmp = cat(0,fft_left+fft_right_rofu,fft_left-fft_right_rofu   );
+
+  return(tmp);
+} 
+
+
+
+
+/* slices array in direction (k), calculates fft(), */
+/* reassebles slices to array */
+
+
+
+
+#ifdef NEW_TYPECHECK
+
+
+double[+] ComplexFFTSlice( double dir, double[+] in, double[+] rofu)
+{  
+  result = with( [0,0] <= iv < drop([1], shape(in)) )
+           {
+             slice_fft = ComplexFFT(dir, in[iv], rofu);
+           }
+           modarray( in, iv, slice_fft);
+
+  return(result);
+}
+
+
+#else
+
+double[+] ComplexFFTSlice( double dir, double[+] in, double[+] rofu)
+{  
+  result = with( [0,0] <= iv < [shape(in)[[0]],shape(in)[[1]]] )
+           {
+             slice_fft = ComplexFFT(dir, in[iv], rofu);
+           }
+           modarray( in, iv, slice_fft);
+
+  return(result);
+}
+
+#endif
+
+
+
+
+
+/************** THIS IS THE TOP-LEVEL FFT-Func **********************/
+
+#ifdef CPX
+
+cpx[+] FFT3d_forward(cpx[+] a, cpx[+] rofu)
+{ 
+  a_t = Transpose( ([2,1,0]), a);
+  b   = ComplexFFTSlice( 1d, a_t, rofu);
+  b_t = Transpose( ([0,2,1]),  b);
+  c   = ComplexFFTSlice( 1d, b_t, rofu);
+  c_t = Transpose( ([1,2,0]),  c);
+  d   = ComplexFFTSlice( 1d, c_t, rofu);
+
+  return( d);
+}
+
+cpx[+] FFT3d_inverse(cpx[+] a, cpx[+] rofu)
+{ 
+  u   = ComplexFFTSlice( -1d, a, rofu); 
+  u_t = Transpose( ([0,2,1]), u); 
+  v   = ComplexFFTSlice( -1d, u_t, rofu); 
+  v_t = Transpose( ([2,1,0]), v);
+  w   = ComplexFFTSlice( -1d, v_t, rofu); 
+  w_t = Transpose( ([2,0,1]), w);
+
+  return( w_t);
+}
+
+#else
+
+double[+] Complex3dFFT(double dir, double[+] a, double[+] rofu)
+{ 
+  if (dir > 0d) {
+    a_t = Transpose( ([2,1,0]), a);
+    b   = ComplexFFTSlice( 1d, a_t, rofu);
+    b_t = Transpose( ([0,2,1]),  b);
+    c   = ComplexFFTSlice( 1d, b_t, rofu);
+    c_t = Transpose( ([1,2,0]),  c);
+    d   = ComplexFFTSlice( 1d, c_t, rofu);
+    res = d;
+  }
+  else {  
+    u   = ComplexFFTSlice( -1d, a, rofu); 
+    u_t = Transpose( ([0,2,1]), u); 
+    v   = ComplexFFTSlice( -1d, u_t, rofu); 
+    v_t = Transpose( ([2,1,0]), v);
+    w   = ComplexFFTSlice( -1d, v_t, rofu); 
+    w_t = Transpose( ([2,0,1]), w);
+ 
+    res = w_t;
+ }
+
+  return(res);
+}
+
+#endif
+
+
+
+int main()
+{ 
+  total_size = NX*NY*NZ;
+  printf(" Dimension: %d x %d x %d, N-Iter: %d  Total Size: %d Complex\n",
+         NX, NY, NZ, N, total_size);
+
+  indexmap = ComputeIndexMap();
+  expomap  = ComputeExponentialMap();
+  rofu     = RootsOfUnity( 1d); 
+
+  U = Initialize();
+
+  V = FFT3d_forward( (:cpx[+])U, (:cpx[+])rofu);
+
+  rofu = RootsOfUnity( -1d); 
+
+
+  /*****  Performing N iterations for timestep t *****************/
+
+  for (t=1 ; t<=N ; t++) {
+    
+    W = Evolve( (:double[+])V, t, indexmap, expomap);
+ 
+    X = FFT3d_inverse( (:cpx[+])W, (:cpx[+])rofu) / tod(total_size);
+
+    check = Checksum((:double[+])X);
+
+    printf("Ergebnis: ");
+    print(check);
+    printf("   Soll: ");
+    print(Validate(t));
+    printf("\n");
+  }
+  
+  return(0);
+}
+
+
+
+
+
+

@@ -1,0 +1,19 @@
+import Cpx: all;
+import ArrayIO: all;
+
+/* import Array:all; */
+
+
+int main()
+{
+  a = with (.<=iv<=.) genarray([20,20,2], 0d);
+  
+  b = (:cpx[20,20]) a;
+
+  c = b + b;
+
+  s = shp(b);
+  print(s);
+  
+  return(s[[0]]);
+}

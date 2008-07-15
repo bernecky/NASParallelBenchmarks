@@ -1,0 +1,280 @@
+
+import Array: all;
+import StdIO: all; 
+import Math: all;
+import ArrayIO: all;
+import Complex: all;
+
+import Support: all;
+
+
+
+
+
+
+
+
+
+
+
+
+/************************** BEGIN OF FFT-Kernel**********************/
+
+
+
+inline int g(int j, int k)
+{
+  if ( k<2 || j<=k)
+    res = j+k;
+  else
+    res = g( j-k , k/2);
+  return(res);
+}
+
+
+inline int[+] MakeBitreversal(int[+] in)
+{
+  m = shape(in)[0] / 2;
+  res = modarray(in,0,1);
+  for (i = 1; i<shape(in)[0]; i++)
+    res[i] = g( res[i-1],m)  ;
+  return(res - 1);
+}
+
+
+
+
+
+
+
+
+double[+] ComplexFFT(int dir , double[+] v , double[+] rofu , int[+] br)
+{
+  n = shape(v)[0];
+  /*  Apply Bitreversal */
+
+  a = with([0] <= iv = [i] < [n])
+    modarray(v,iv,v[br[i]]);
+
+  
+
+#define TEST2
+
+
+#ifdef TEST1
+ a = with( [0] <= iv=[i] < [n] step [4]) {
+  w0 = toc(a[iv]) + toc(a[iv+1]);
+   w2 = toc(a[iv+2]) + toc(a[iv+3]);
+   res = w0 +w2;
+   }modarray(a,iv,todv(res));
+
+ a = with( [1] <= iv=[i] < [n] step [4]) {
+   w1 = toc(a[iv]) - toc(a[iv+1]);
+   if ( dir == 1)
+     w3 = toc(a[iv+2]) - toc(a[iv+3]);
+   else
+     w3 = toc(a[iv+3]) - toc(a[iv+2]);
+   res = w1 + i() * w3;
+ }modarray(a,iv,todv(res));
+
+ a = with( [2] <= iv=[i] < [n] step [4]) {
+   w0 = toc(a[iv]) + toc(a[iv+1]);
+   w2 = toc(a[iv+2]) + toc(a[iv+3]);
+   res = w0 - w2;
+ }modarray(a,iv,todv(res));
+
+ a = with( [3] <= iv=[i] < [n] step [4]) {
+    w1 = toc(a[iv]) - toc(a[iv+1]);
+    if ( dir == 1)
+       w3 = toc(a[iv+2]) - toc(a[iv+3]);
+    else
+        w3 = toc(a[iv+3]) - toc(a[iv+2]);
+    res = w1 - i() * w3;
+  }modarray(a,iv,todv(res));
+
+#endif
+
+#ifdef TEST2
+  a = with( [0] <= iv=[i] < [n] ) {
+    i_4 = (i/4) * 4;
+    i_mod_4 = i%4;
+
+  
+    w0 = toc(a[i_4]) + toc(a[i_4+1]);
+    w1 = toc(a[i_4]) - toc(a[i_4+1]);
+    w2 = toc(a[i_4+2]) + toc(a[i_4+3]);
+    if ( dir == 1)
+       w3 = toc(a[i_4+2]) - toc(a[i_4+3]);
+    else
+        w3 = toc(a[i_4+3]) - toc(a[i_4+2]);
+    if ( i_mod_4 == 0 ) res = w0 + w2;
+    else if ( i_mod_4 == 1 ) res = w1 + i() * w3;
+    else if ( i_mod_4 == 2 ) res = w0 - w2;
+    else res = w1 - i() * w3;
+  } modarray(a , iv , todv(res));
+#endif
+
+#ifdef TEST3
+  a = with( [0] <= iv=[i] < [n] ) {
+    i_4 = (i/4) * 4;
+    i_mod_4 = i%4;
+ 
+    if ( i_mod_4 == 0 ) 
+       res = toc(a[i_4]) + toc(a[i_4 + 1]) \
+             + toc(a[i_4 + 2]) + toc(a[i_4 + 3]);
+    else if ( i_mod_4 == 1 )
+       if ( dir == 1 )
+          res = (toc(a[i_4])-toc(a[i_4+1])) \
+	    + i() * (toc(a[i_4+2]) - toc(a[i_4+3]));
+       else
+          res = (toc(a[i_4])-toc(a[i_4+1])) \
+	    + i() * (toc(a[i_4+3]) - toc(a[i_4+2]));
+    else if ( i_mod_4 == 2 )
+       res =  toc(a[i_4]) + toc(a[i_4 + 1]) \
+	 - (toc(a[i_4 + 2]) + toc(a[i_4 + 3]));
+    else                              
+       if ( dir == 1 )
+          res = (toc(a[i_4])-toc(a[i_4+1])) \
+	    - i() * (toc(a[i_4+2]) - toc(a[i_4+3]));
+       else
+          res = (toc(a[i_4])-toc(a[i_4+1])) \
+	    - i() * (toc(a[i_4+3]) - toc(a[i_4+2]));
+  } modarray(a , iv , todv(res));
+#endif
+
+
+
+  dest = a;
+  for ( mmax=8 ; mmax<=n ; mmax=mmax*2 )  {
+
+    half_size = n / 2;
+    half_mmax = mmax / 2;
+    n_div_mmax = n / mmax;
+    for (j = 0 ; j < n_div_mmax ; j++){
+      for (i = 0 ; i < half_mmax ; i++) {
+	
+	index = n_div_mmax * i;
+	ii = i + j*mmax;
+	tmp = toc(a[ii+half_mmax]) * toc(rofu[index]);
+	dest[ii+half_mmax] = todv(   toc(a[ii]) - tmp);
+	dest[ii] = todv(   toc(a[ii]) + tmp);
+      }}
+    a = dest;
+  }
+  return(a);
+}
+
+
+/*******************  END OF FFT *************************************/
+
+
+
+
+
+
+/* slices array in direction (k), calculates fft(), */
+/* reassembles slices to array */
+
+inline  double[+] ComplexFFTSlice(int dir,double[+] in,double[NX_2,2] rofu,int[+] bitrev)
+{  
+
+  result = with( [0,0] <= iv=[x,y] <[shape(in)[0],shape(in)[1]] ){
+
+    slice_fft = ComplexFFT(dir ,in[x,y] , rofu, bitrev);
+
+  } modarray(in,iv, slice_fft);
+ 
+
+ return(result);
+}
+
+
+
+
+
+
+
+
+/************** THIS IS THE TOP-LEVEL FFT-Func **********************/
+
+/* inlinig crashes the program */
+
+ double[NX,NY,NZ,2] Complex3dFFT(int dir, double[NX,NY,NZ,2] in,double[NX_2,2]
+				 rofu,int[NX] bitrev0,int[NY] bitrev1,int[NZ] 
+				 bitrev2)
+{ 
+  if (dir > 0) {
+    a = ComplexFFTSlice(1,Transpose_xyz_zyx(in),rofu,bitrev0)  ;
+    b = ComplexFFTSlice(1,Transpose_zyx_zxy(a),rofu,bitrev1);
+    result=ComplexFFTSlice(1,Transpose_zxy_xyz(b),rofu,bitrev2);
+  }
+  else { 
+    c = Transpose_xyz_xzy(ComplexFFTSlice(-1,in,rofu,bitrev2)); 
+    d = Transpose_xzy_yzx(ComplexFFTSlice(-1,c,rofu,bitrev1));
+    result=Transpose_yzx_xyz(ComplexFFTSlice(-1,d,rofu,bitrev0) );
+  }
+  return(result);
+}
+
+
+
+
+
+int main()
+{ 
+  total_size = NX*NY*NZ;
+  printf(" Dimension: %d x %d x %d, N-Iter: %d  Total Size: %d Complex\n",NX,NY,NZ,N,total_size);
+
+  indexmap = ComputeIndexmap(genarray([NX,NY,NZ],0));
+
+
+  expomap = ComputeExponentialmap(genarray([NEXP],0.0d));
+    
+
+  rofu = RootsOfUnity( genarray([NX_2],[0.0d,0.0d]) ,1); 
+
+  U = Initialize1(genarray([NX,NY,NZ],[0.0d,0.0d]));
+
+
+  br0 = MakeBitreversal(genarray([NX],0));
+  br1 = MakeBitreversal(genarray([NY],0));
+  br2 = MakeBitreversal(genarray([NZ],0));
+
+
+  V = Complex3dFFT(1,U,rofu,br0,br1,br2);
+  rofu = RootsOfUnity( genarray([NX_2],[0.0d,0.0d]) ,-1); 
+
+
+
+
+
+
+  /*****  Performing N iterations for timestep t *****************/
+
+  for (t=1 ; t<=N ; t++) {
+    
+    W = Evolve(V,t,indexmap,expomap);
+ 
+    X = Complex3dFFT(-1,W,rofu,br0,br1,br2) / tod(total_size);
+
+
+      check = Checksum(X);
+    printf("Ergebnis: ");
+    print(check);
+    printf("   Soll: ");
+    print(Validate(t));
+    printf("\n");
+
+   }
+  
+  
+    
+  
+  return(0);
+}
+
+
+
+
+
+
