@@ -1,340 +1,116 @@
-
 import Array: all;
 import StdIO: all; 
 import Math: all;
 import ArrayIO: all;
+import Complex: all;
 
+#define NX 256
+#define NY 256
+#define NZ 128
+#define NX_2 128
+#define ITER 6
+#define NEXP 256
 
+#define CLASS_A
 
-
-/************************** cpx **********************/
-
-typedef double[2] cpx;
-
-#if 0
-inline
-cpx sel(int[.] iv, cpx[+] a)
+double[+] todv(Complex::complex[+] a)
 {
-  ad = cpx2dbl(a);
-  rd = ad[iv];
-  
-  return( dbl2cpx(rd));
-}
-#endif
-
-inline
-double sel(int i, cpx a)
-{
-  return( ((:double[2])a)[[i]]);
+  r = with {
+    (. <= iv <= .) : todv(a[iv]);
+  } : genarray(shape(a), [0,0]); 
+  return(r);
 }
 
-
-inline
-double[2] cpx2dbl(cpx c)
-{
-  return((:double[2]) c);
-}
-
-inline
-double[+] cpx2dbl(cpx[+] c)
-{
-  return((:double[+]) c);
-}
-
-inline
-cpx dbl2cpx(double[2] d)
-{
-  return((:cpx) d);
-}
-
-inline
-cpx[+] dbl2cpx(double[+] d)
-{
-  return((:cpx[+]) d);
-}
-
-
-inline
-cpx i()
-{
-  return(dbl2cpx([0d,1d]));
-}
-
-
-
-inline
-cpx + (cpx a, cpx b) 
-{
-  res = [a[0]+b[0], a[1]+b[1]];
-  
-  return((:cpx)res);
-}
-
-
-inline
-cpx - (cpx a, cpx b) 
-{
-  res = [a[0]-b[0], a[1]-b[1]];
-  
-  return((:cpx)res);
-}
-
-
-inline
-cpx * (cpx a, cpx b) 
-{
-  res = [a[0]*b[0] - a[1]*b[1], a[0]*b[1] + a[1]*b[0]];
-  
-  return((:cpx)res);
-}
-
-
-#ifdef CPX_ON_ARRAYS
-
-#define CPX_ON_ARRAYS_ADD
-#define CPX_ON_ARRAYS_SUB
-#define CPX_ON_ARRAYS_MULT
-#define CPX_ON_ARRAYS_CONCAT
-
-#endif
-
-
-#ifdef CPX_ON_ARRAYS_ADD
-
-inline
-cpx[+] + (cpx[+] a, cpx[+] b)
-{
-  res = with (.<=iv<=.)
-        genarray( drop([-1], shape(a)), (:cpx)(a[iv]) + (:cpx)(b[iv])); 
-
+Complex::complex[.,.,.] Transpose( 
+                                  int[3] permv, 
+                                  Complex::complex[.,.,.] A)
+{  
+  res = with{
+    (. <= iv <= .) {
+      r = A[
+            iv[permv[0]],
+            iv[permv[1]],
+            iv[permv[2]]
+      ];
+    } : r;
+  } : genarray([
+                shape(A)[permv[0]],
+                shape(A)[permv[1]],
+                shape(A)[permv[2]]
+                ], one());
   return(res);
 }
 
-#else
-
-inline
-cpx[+] + (cpx[+] a, cpx[+] b)
+int[+] InvertPermVect(int[+] pv) 
 {
-
-  res = with (.<=iv<=.)
-  genarray(shape(a), ((:double[+])a)[iv] + ((:double[+])b)[iv]); 
-  
-  return((:cpx[+])res);
-}
-
-#endif
-
-
-#ifdef CPX_ON_ARRAYS_SUB
-
-inline
-cpx[+] - (cpx[+] a, cpx[+] b)
-{
-  res = with (.<=iv<=.)
-        genarray( drop([-1], shape(a)), (:cpx)(a[iv]) - (:cpx)(b[iv])); 
-
-  return(res);
-}
-
-#else
-
-inline
-cpx[+] - (cpx[+] a, cpx[+] b)
-{
-
-  res = with (.<=iv<=.)
-  genarray(shape(a), ((:double[+])a)[iv] - ((:double[+])b)[iv]); 
-  
-  return((:cpx[+])res);
-}
-
-#endif
-
-
-#ifdef CPX_ON_ARRAYS_MULT
-
- inline 
-cpx[+] * (cpx[+] a, cpx[+] b)
-{
-  res = with (.<=iv<=.)
-        genarray( drop([-1], shape(a)), (:cpx)(a[iv]) * (:cpx)(b[iv])); 
-
-  return(res);
-}
-
-#else
-
-
-inline 
-cpx[+] * (cpx[+] a, cpx[+] b)
-{
-  aa = cpx2dbl( a);
-  bb = cpx2dbl( b);
-  
-  ub_real = shape(aa);
-  ub_real[shape(ub_real) - 1] = 1;
-  
-  lb_imag = 0 * shape(aa);
-  lb_imag[shape(lb_imag) - 1] = 1;
-  
-  res = with (. <= iv < ub_real) 
-        {
-          val = aa[iv] * bb[iv] - aa[iv+lb_imag] * bb[iv+lb_imag];
+  pv_inv = with {
+    (. <= iv <= .) {
+      val = 0;
+      for (i=0; i<shape(pv)[[0]]; i++) {
+        if (pv[[i]] == iv[[0]]) {
+          val = i;
         }
-        genarray(shape(aa), val);
-  
-  res = with (lb_imag <= iv <= .) 
-        {
-          val = aa[iv-lb_imag] * bb[iv] + aa[iv] * bb[iv-lb_imag];
-        }
-        modarray( res, iv, val);
-  
-
-  return( dbl2cpx(res));
-}
-
-
-#endif
-
-
-
-
-
-inline
-cpx * (double a, cpx b)
-{
-  bd = cpx2dbl( b);
-  r  = bd * a;
-
-  return(dbl2cpx(r));
-}
-
-
-inline
-cpx[+] concat(cpx[+] a, cpx[+] b)
-{
-  aa = cpx2dbl(a);
-  bb = cpx2dbl(b);
-  
-  r = cat(0, aa, bb);
-  
-  return((:cpx[+]) r);
-}
-
-
-inline cpx[+] Transpose( int[+] permv, cpx[+] A)
-{
-  AA = cpx2dbl(A);
-
-  res = with( .<= iv <= .)
-        {
-          ivt = TransposeSelect( permv, iv);
-#ifndef NOTRICKS
-          ivt = [ivt[[0]], ivt[[1]], ivt[[2]], ivt[[3]]]; 
-#endif
-          val = AA[ivt];
-        }
-        genarray([shape(AA)[[permv[[0]]]],
-                  shape(AA)[[permv[[1]]]],
-                  shape(AA)[[permv[[2]]]],
-                  2], 
-                  val);
-
-  return( dbl2cpx(res));
-}
-
-
-inline int[+] InvertPermVect(int[+] pv) 
-{
-  pv_inv = with (. <= iv <= .)
-           {
-             val = 0;
-             for (i=0; i<shape(pv)[[0]]; i++) {
-               if (pv[[i]] == iv[[0]]) {
-                 val = i;
-               }
-             }
-           }
-           modarray(pv, iv, val);
+      }
+    } : val;
+  }: modarray(pv);
 
   return(pv_inv);
 }
 
 
-inline int[+] TransposeSelect( int[+] permv, int[+] indexv)
+int[+] TransposeSelect( int[+] permv, int[+] indexv)
 {
   permv_inv = InvertPermVect(permv);
   
-  res = with (. <= iv < shape(permv))
-        modarray( indexv, iv, indexv[[permv_inv[iv]]]);
+  res = with {
+    (. <= iv < shape(permv)) : indexv[[permv_inv[iv]]] ;
+  } : modarray( indexv);
   
   return( res);
 }
 
+/*
 
-inline
-cpx[+] sel(int[+] iv, cpx[+] a)
+Complex::complex[+] sel(int[+] iv, Complex::complex[+] a)
 {
-  ad = cpx2dbl(a);
+  ad = todv(a);
   rd = ad[iv];
   
-  return( dbl2cpx(rd));
+  return( toc(rd));
+}*/
+
+
+Complex::complex[.,.,.] unscatter( int str, Complex::complex[.,.,.] r)
+{
+  rn = with {
+    (. <= iv <= .) : toc(todv(r[iv*str])[[0]], todv(r[iv])[[1]]);
+  } : genarray(shape(r) / str, toc(0.0));
+
+  return( rn);
 }
 
-inline
-cpx[+] unscatter( int str, cpx[+] r)
+/*
+
+Complex::complex[+] rotate( 
+                                 int d, 
+                                 int offset, 
+                                 Complex::complex[+] a)
 {
-  rd = cpx2dbl(r);
-
-#if 1
-  rn = with (. <= iv <= .)
-       genarray( shape(r) / [str,1], rd[[str*iv[[0]], iv[[1]]]]);
-#else
-  rn = with (. <= iv <= .)
-       genarray( shape(r) / [str,1], rd[[str,1]*iv]);
-#endif
-  return( dbl2cpx(rn));
-}
-
-#if 1
-#define Unscatter(str , r)                                              \
- dbl2cpx( with (. <= iv <= .)                                           \
-          genarray( shape( (r)) / [(str),1], cpx2dbl((r))[[(str)*iv[[0]],iv[[1]]]]) )
-#else
-#define Unscatter(str , r)                                              \
- dbl2cpx( with (. <= iv <= .)                                           \
-          genarray( shape( (r)) / [(str),1], cpx2dbl((r))[[(str),1]*iv]) )
-#endif
-
-
-#if 0
-cpx[+] scatter( int str, cpx[+] rn)
-{
-  r = with (. <= iv <= . step [str,str,str])
-      genarray( str * shape(rn), rn[iv/str]);
-
-  return( r);
-}
-#endif
-
-inline
-cpx[+] rotate( int d, int offset, cpx[+] a)
-{
-  ad = cpx2dbl(a);
+  ad = todv(a);
   rd = rotate( d, offset, ad);
-  return( dbl2cpx(rd));
+  return( toc(rd));
 }
+*/
 
 
-inline
-void print(cpx c)
+void print(Complex::complex c)
 {
-  cd = cpx2dbl(c);
+  cd = todv(c);
   printf("(%.10g , %.10g)", cd[[0]], cd[[1]]);
 }
 
 #if 0
-cpx[+] DO_NOT_FOLD(cpx[+] c)
+Complex::complex[+] DO_NOT_FOLD(Complex::complex[+] c)
 {
   return(c);
 }
@@ -344,7 +120,7 @@ cpx[+] DO_NOT_FOLD(cpx[+] c)
 
 
 
-inline double my_mod(double a, double b, double d1, double d2)
+double my_mod(double a, double b, double d1, double d2)
   {
     a1=floor(a/d2);
     a2=a-d2*a1;
@@ -366,7 +142,7 @@ inline double my_mod(double a, double b, double d1, double d2)
 /* calculates the k-th random element corresponding to int[+] iv */
 
 #if 0
-inline double rand_element(int[4] iv,int[4] sh, double seed,
+double rand_element(int[4] iv,int[4] sh, double seed,
                            double c1, double c2, double c3, double a)
 {
 
@@ -405,7 +181,7 @@ inline double rand_element(int[4] iv,int[4] sh, double seed,
  */
 
 #if 0
-inline double[+] Initialize2(double[+] A)
+double[+] Initialize2(double[+] A)
 {
   a = pow(5d,13d);   
   const1 = pow(2.0,46.0);
@@ -432,9 +208,9 @@ inline double[+] Initialize2(double[+] A)
  */
 
 
-inline cpx[+] Initialize()
+Complex::complex[NX,NY,NZ] Initialize()
 {
-  A = genarray([NX,NY,NZ,2], 0d);
+  A = genarray([NX,NY,NZ], toc(0.0));
   
   seed=314159265d;
   rand = seed;
@@ -450,15 +226,16 @@ inline cpx[+] Initialize()
   for(z=0 ; z <n3  ; z++) {
     for(y=0 ; y <n2  ; y++) {
       for(x=0 ; x <n1  ; x++) {
-	for(i=0 ; i<2 ; i++) {
 	  rand = my_mod (a , rand, const1, const3) ;
-          A[x,y,z,i] = rand * const2 ;
-	}
+          r1 = rand * const2 ;
+	  rand = my_mod (a , rand, const1, const3) ;
+          r2 = rand * const2 ;
+          A[x,y,z] = toc(r1,r2);
       }
     }
   }
 
-  return(dbl2cpx(A));
+  return(A);
 } 
 
 
@@ -472,14 +249,16 @@ inline cpx[+] Initialize()
 /*********** no inlining possible ******************/
 
 #ifndef NICE_ComputeIndexMap
-int[+] ComputeIndexMap()
+int[NX,NY,NZ] ComputeIndexMap()
 {
-  map = with(.<=iv=[i,j,k]<=.) {
-    ii = ( (i+NX/2) % NX ) - NX/2;
-    jj = ( (j+NY/2) % NY ) - NY/2;
-    kk = ( (k+NZ/2) % NZ ) - NZ/2;
-    ttt = ii*ii+jj*jj+kk*kk;
-  } genarray( [NX,NY,NZ], ttt);
+  map = with {
+    (.<=iv=[i,j,k]<=.) {
+      ii = ( (i+NX/2) % NX ) - NX/2;
+      jj = ( (j+NY/2) % NY ) - NY/2;
+      kk = ( (k+NZ/2) % NZ ) - NZ/2;
+      ttt = ii*ii+jj*jj+kk*kk;
+    } : ttt;
+  } : genarray( [NX,NY,NZ], 0);
 
   return(map);
 }
@@ -488,15 +267,15 @@ int[+] ComputeIndexMap()
  * The problem here is that the primitive array operations are used for
  * integer vectors and hence no withloop folding applies to the body.
  */
-int[+] ComputeIndexMap()
+int[NX,NY,NZ] ComputeIndexMap()
 {
   map = genarray( [NX,NY,NZ], 0);
-  map = with(. <= iv <= .)
-        {
-          iv_scramble = ((iv + shape(map) / 2) % shape(map)) - shape(map) / 2;
-          val = sum( iv_scramble*iv_scramble);
-        }
-        modarray( map, iv, val);
+  map = with {
+    (. <= iv <= .) {
+      iv_scramble = ((iv + shape(map) / 2) % shape(map)) - shape(map) / 2;
+      val = sum( iv_scramble*iv_scramble);
+    }: val;
+  } : modarray( map);
 
   return(map);
 }
@@ -510,7 +289,7 @@ int[+] ComputeIndexMap()
 
 
 #ifdef FRISO
-inline double[+] ComputeExponentialMap()
+double[NEXP] ComputeExponentialMap()
 {
   map = genarry([NEXP], 0d);
   
@@ -526,7 +305,7 @@ inline double[+] ComputeExponentialMap()
 
 }
 #else
-double[+] ComputeExponentialMap()
+double[NEXP] ComputeExponentialMap()
 {
   map = genarray([NEXP], 0d);
   
@@ -549,25 +328,25 @@ double[+] ComputeExponentialMap()
 
 
 /* Initializes the double[+] u with sines and cosines  
- * so called Roots Of Unity. Used by ComplexFFT()
+ * so called Roots Of Unity. Used by ComplexBasics::ComplexFFT()
  */
 
-cpx[+] RootsOfUnity( double dir)
+Complex::complex[.] RootsOfUnity( double dir)
 {
-  u = genarray([NX_2,2], 0d);
+  u = genarray([NX_2], toc(0.0));
   
   theta = dir * pi() / tod(shape(u)[[0]]);
-  wp = dbl2cpx([cos(theta) - 1d , sin(theta)]  );
+  wp = toc(cos(theta) - 1d , sin(theta));
 
-  u[0]=[1d,0d];
+  u[0]= toc(1d,0d);
 
-  for (i=1; i<shape(u)[0] ; i++) {
-    last = dbl2cpx(u[[i-1]]);
+  for (i=1; i<shape(u)[[0]] ; i++) {
+    last = u[[i-1]];
     current = last * wp + last;
-    u[[i]] = cpx2dbl(current);
+    u[[i]] = current;
   }
     
-  return(dbl2cpx(u)); 
+  return(u); 
 }
 
 
@@ -582,26 +361,33 @@ cpx[+] RootsOfUnity( double dir)
 
 #if (EVOLVE == 1)
 
-inline cpx[+] Evolve( cpx[+] V, int t, int[+] index, double[+] expo)
-{
-  Vd = cpx2dbl(V);
-  
-  res = with (. <= iv=[i,j,k,l] <= .)
-       {
-         newindex = t*index[i,j,k];
-         exponent = expo[[newindex]];
-         val = Vd[iv] * exponent;
-       }
-       modarray( Vd, iv, val);
 
-  return( dbl2cpx(res));
+Complex::complex[.,.,.] Evolve( 
+                                     Complex::complex[.,.,.] V, 
+                                     int t, 
+                                     int[.,.,.] index, 
+                                     double[.,.,.] expo)
+{  
+  res = with {
+    (. <= iv <= .) {
+      newindex = t*index[iv];
+      exponent = expo[[newindex]];
+      val = V[iv] * toc(exponent);
+    } : val;
+  } : genarray(shape(V));
+
+  return( res);
 }
 
 #else
 
-inline cpx[+] Evolve( cpx[+] V, int t, int[+] index, double[+] expo)
+Complex::complex[+] Evolve( 
+                           Complex::complex[+] V, 
+                           int t, 
+                           int[+] index, 
+                           double[+] expo)
 {
-  Vd = cpx2dbl(V);
+  Vd = todv(V);
   
   res = with ( . <= iv <= .)
        {
@@ -611,7 +397,7 @@ inline cpx[+] Evolve( cpx[+] V, int t, int[+] index, double[+] expo)
        }
        genarray( shape(index), val);
 
-  return( dbl2cpx(res));
+  return( toc(res));
 }
 
 #endif
@@ -621,25 +407,18 @@ inline cpx[+] Evolve( cpx[+] V, int t, int[+] index, double[+] expo)
 /* Calculate the sum of 1024 elements for verification
  */
 
-
-
-inline
-cpx Checksum( cpx[+] XX)
-{
-  X = cpx2dbl(XX);
-  
-  result_r = 0d;
-  result_i = 0d;
+Complex::complex Checksum( Complex::complex[.,.,.] XX)
+{  
+  result = zero();
 
   for (j=0 ; j<1024 ; j++) {
-    q = j % shape(X)[0];
-    r = (3 * j) % shape(X)[[1]];
-    s = (5 * j) % shape(X)[[2]];
-    result_r += X[[q,r,s,0]];
-    result_i += X[[q,r,s,1]];
+    q = j % shape(XX)[[0]];
+    r = (3 * j) % shape(XX)[[1]];
+    s = (5 * j) % shape(XX)[[2]];
+    result += XX[[q,r,s]];
   }
   
-  return(dbl2cpx([result_r, result_i]));
+  return(result);
 }
 
 
@@ -648,8 +427,8 @@ cpx Checksum( cpx[+] XX)
  */
 
 
-inline
-cpx Validate(int iter)
+
+Complex::complex Validate(int iter)
 {
 
 #ifdef CLASS_U    /* Userdefined */
@@ -658,7 +437,7 @@ cpx Validate(int iter)
 		     0D,0D,
 		     0D,0D,
 		     0D,0D,
-		     0D,0D,]);
+		     0D,0D]);
 
 #endif
 
@@ -734,7 +513,7 @@ cpx Validate(int iter)
 
     
 
-return(dbl2cpx(V[[iter-1]]));
+return(toc(V[[iter-1]]));
 }
 
 
@@ -742,82 +521,60 @@ return(dbl2cpx(V[[iter-1]]));
 
 
 #if 0
-inline cpx[+] ShuffleLeft(cpx[+] vv)
+Complex::complex[+] ShuffleLeft(Complex::complex[+] vv)
 {
-  v=cpx2dbl(vv);
+  v=todv(vv);
   
-  res = with(.<=[i,j]<=.   ) {
-  } genarray(shape(v) / 2 +[0,1],v[i*2,j]);
+  res = with {
+    (.<=[i,j]<=.   ) : v[i*2,j];
+  } : genarray(shape(v) / 2 +[0,1]);
   
- return( dbl2cpx(res));
+ return( toc(res));
 }
 
 
 
-inline cpx[+] ShuffleRight(cpx[+] vv)
+Complex::complex[+] ShuffleRight(Complex::complex[+] vv)
 {
- v=cpx2dbl(vv);
+ v=todv(vv);
   
   res = with(.<=[i,j]<=.   ) {
   } genarray(shape(v) / 2 +[0,1],v[i*2+1,j]);
- return( dbl2cpx(res));
+ return( toc(res));
 }
 #endif
 
 /************************** BEGIN OF FFT-Kernel**********************/
 
-cpx[4] FFT1d(double dir, cpx[4] vv, cpx[4] rofu)
-{
-  return(vv);
-}
 
-cpx[4] FFT1d(double dir, cpx[4] vv, cpx[8] rofu)
+#if 0
+Complex::complex[4] FFT1d(
+                          double dir, 
+                          Complex::complex[4] vv, 
+                          Complex::complex[2] rofu)
 {
-  return(vv);
-}
-
-cpx[4] FFT1d(double dir, cpx[4] vv, cpx[16] rofu)
-{
-  return(vv);
-}
-
-cpx[4] FFT1d(double dir, cpx[4] vv, cpx[32] rofu)
-{
-  return(vv);
-}
-
-cpx[4] FFT1d(double dir, cpx[4] vv, cpx[64] rofu)
-{
-  return(vv);
-}
-
-#if 1
-inline cpx[4] FFT1d(double dir, cpx[4] vv, cpx[2] rofu)
-{
-  v = cpx2dbl(vv);
-  
-  v0 = dbl2cpx(v[[0]]);
-  v1 = dbl2cpx(v[[1]]);
-  v2 = dbl2cpx(v[[2]]);
-  v3 = dbl2cpx(v[[3]]);
+  v0 = vv[[0]];
+  v1 = vv[[1]];
+  v2 = vv[[2]];
+  v3 = vv[[3]];
   
   w0 = v0 + v2;
   w1 = v0 - v2;
   w2 = v1 + v3;
-  w3 = dir * i() * ( v1 - v3 );
+  w3 = toc(dir) * i() * ( v1 - v3 );
 
-
-  t0 = cpx2dbl( w0 + w2 );
-  t1 = cpx2dbl( w1 + w3 );
-  t2 = cpx2dbl( w0 - w2 );
-  t3 = cpx2dbl( w1 - w3 );
-
-  t = reshape( [4,2],[t0[[0]],t0[[1]],t1[[0]],t1[[1]],t2[[0]],t2[[1]],t3[[0]],t3[[1]]]);
+  t0 = w0 + w2;
+  t1 = w1 + w3;
+  t2 = w0 - w2;
+  t3 = w1 - w3;
   
-  return( dbl2cpx(t));
+  return( [t0,t1,t2,t3]);
 }
 #else
-inline cpx[4] FFT1d(double dir, cpx[4] v, cpx[2] rofu)
+Complex::complex[4] FFT1d(
+                          double dir, 
+                          Complex::complex[4] v, 
+                          Complex::complex[2] rofu)
 {
   left_v      = unscatter(2, v);
   right_v     = unscatter(2, rotate(0, -1, v));
@@ -828,62 +585,27 @@ inline cpx[4] FFT1d(double dir, cpx[4] v, cpx[2] rofu)
   
   fft_right *= rofu;
   
-  res = concat( fft_left + fft_right, fft_left - fft_right);
+  res = with {
+    (0 <= [i] <= 1) : fft_left + fft_right;
+    (2 <= [i] <= 3) : fft_left - fft_right;
+  } : genarray([4], toc(0));
 
   return( res);
 } 
 
-inline cpx[2] FFT1d(double dir, cpx[2] v, cpx[1] rofu)
+Complex::complex[2] FFT1d(double dir, Complex::complex[2] v, Complex::complex[1] rofu)
 {
-  fft_left  = v[[0]];
-  fft_right = v[[1]];
-  
-  fft_right *= dbl2cpx(rofu[[0]]);
-  
-  res = [fft_left, fft_right];
-  
-
-  return( res);
+  return(v*[toc(0),rofu[[0]]]);
 } 
 
 
 #endif
 
-#if 0
-cpx[+] MultRofu(cpx[+] vc, cpx[+] rofuc)
-{
-  v = cpx2dbl(vc);
-  rofu = cpx2dbl(rofuc);
-  
-  index = shape(rofu)[[0]] / shape(v)[[0]];
 
-  select_rofu = with (. <= iv <= .)
-                {
-                  val = rofu[[iv[[0]]*index, iv[[1]]]];
-                }
-                genarray( shape(v), val);
-  
-  prod = with ([0,0] <= iv < shape(v)-[0,1])
-         {
-           res = v[iv] * select_rofu[iv] 
-                 - v[iv+[0,1]] * select_rofu[iv+[0,1]];
-         }
-         modarray( v, iv, res);
-
-  prod = with ([0,1] <= iv < shape(v))
-         {
-           res = v[iv] * select_rofu[iv-[0,1]] 
-                 + v[iv-[0,1]] * select_rofu[iv];
-         }
-         modarray( prod, iv, res);
-
-  return(dbl2cpx(prod));
-}
-
-#endif
-
-inline 
-cpx[+] FFT1d(double dir, cpx[+] v, cpx[+] rofu)
+Complex::complex[.] FFT1d(
+                          double dir, 
+                          Complex::complex[.] v, 
+                          Complex::complex[.] rofu)
 {
   left_v      = unscatter(2, v);
   right_v     = unscatter(2, rotate(0, -1, v));
@@ -894,52 +616,41 @@ cpx[+] FFT1d(double dir, cpx[+] v, cpx[+] rofu)
   
   fft_right *= rofu;
   
-  res = concat( fft_left + fft_right, fft_left - fft_right);
+  res = (fft_left + fft_right) ++ (fft_left - fft_right);
 
   return( res);
 } 
-
-#if 0
-inline 
-cpx[+] FFT1d_Top(double dir, cpx[+] v, cpx[+] rofu)
-{
-  left_v      = unscatter(2, v);
-  right_v     = unscatter(2, rotate(0, -1, v));
-  rofu_select = unscatter(2, rofu);
-  
-  fft_left  = FFT1d(dir, left_v,  rofu_select);
-  fft_right = FFT1d(dir, right_v, rofu_select);
-  
-  fft_right *= rofu;
-  
-  res = concat( fft_left + fft_right, fft_left - fft_right);
-
-  return( res);
-} 
-#endif
-
 
 /* slices array in direction (k), calculates fft(), */
 /* reassebles slices to array */
 
 
-cpx[+] FFT1d_Slice( double dir, cpx[+] a, cpx[+] rofu)
+Complex::complex[.,.,.] FFT1d_Slice(
+                                double dir, 
+                                Complex::complex[.,.,.] a, 
+                                Complex::complex[.] rofu)
 { 
   if ((([2,1]*shape(rofu)) / [shape(a)[[2]],shape(a)[[3]]])[[0]] > 1) {
-    rofu_select = Unscatter( (([2,1]*shape(rofu)) / [shape(a)[[2]],shape(a)[[3]]])[[0]],
+    rofu_select = unscatter(
+                            (
+                             (
+                              [2,1]*shape(rofu)
+                              ) / 
+                             [shape(a)[[2]],shape(a)[[3]]]
+                             )[[0]],
                              rofu);
-    result = with( [0,0] <= iv < [shape(a)[[0]],shape(a)[[1]]] )
-      {
-        slice = FFT1d(dir, a[iv], rofu_select);
-      }
-    modarray( a, iv, slice);
+    result = with {
+      ( [0,0] <= iv < [shape(a)[[0]],shape(a)[[1]]] ) {
+        val = FFT1d(dir, a[iv], rofu_select);
+      } : val; 
+    } : modarray( a);
   }
   else {
-    result = with( [0,0] <= iv < [shape(a)[[0]],shape(a)[[1]]] )
-             {
-               slice = FFT1d(dir, a[iv], rofu);
-             }
-             modarray( a, iv, slice);
+    result = with {
+      ( [0,0] <= iv < [shape(a)[[0]],shape(a)[[1]]] ) {
+        val = FFT1d(dir, a[iv], rofu);
+      } : val;
+    } : modarray( a);
   }
   
 
@@ -951,46 +662,50 @@ cpx[+] FFT1d_Slice( double dir, cpx[+] a, cpx[+] rofu)
 /************** THIS IS THE TOP-LEVEL FFT-Func **********************/
 
 
-/* inline */
-cpx[+] FFT3d_forward(cpx[+] a, cpx[+] rofu)
+Complex::complex[.,.,.] FFT3d_forward(
+                                      Complex::complex[.,.,.] a, 
+                                      Complex::complex[.] rofu)
 { 
-  a_t = Transpose( ([2,1,0]), a);
+  a_t = Transpose( [2,1,0], a);
   b   = FFT1d_Slice( 1d, a_t, rofu);
-  b_t = Transpose( ([0,2,1]),  b);
+  b_t = Transpose( [0,2,1],  b);
   c   = FFT1d_Slice( 1d, b_t, rofu);
-  c_t = Transpose( ([1,2,0]),  c);
+  c_t = Transpose( [1,2,0],  c);
   d   = FFT1d_Slice( 1d, c_t, rofu);
 
   return( d);
 }
 
-inline cpx[+] FFT3d_inverse(cpx[+] a, cpx[+] rofu)
+
+Complex::complex[.,.,.] FFT3d_inverse(
+                                      Complex::complex[.,.,.] a, 
+                                      Complex::complex[.] rofu)
 { 
   u   = FFT1d_Slice( -1d, a, rofu); 
-  u_t = Transpose( ([0,2,1]), u); 
+  u_t = Transpose([0,2,1], u); 
   v   = FFT1d_Slice( -1d, u_t, rofu); 
-  v_t = Transpose( ([2,1,0]), v);
+  v_t = Transpose([2,1,0], v);
   w   = FFT1d_Slice( -1d, v_t, rofu); 
-  w_t = Transpose( ([2,0,1]), w);
+  w_t = Transpose([2,0,1], w);
 
   return( w_t);
 }
 
-
-void CheckResult(int iter, cpx[+] X)
+/*
+void CheckResult(int iter, Complex::complex[+] X)
 {
   printf("Current checksum:  ");
   print( Checksum(X));
   printf("\nRequired checksum: ");
   print( Validate(iter));
   printf("\n");
-}
+}*/
 
 
 int main()
 { 
   total_size = NX*NY*NZ;
-  printf(" Dimension: %d x %d x %d, N-Iter: %d  Total Size: %d Complex\n",
+  printf(" Dimension: %d x %d x %d, N-Iter: %d  Total Size: %d complex\n",
          NX, NY, NZ, ITER, total_size);
 
   indexmap = ComputeIndexMap();
@@ -1012,7 +727,7 @@ int main()
  
     X = FFT3d_inverse( W, rofu) / tod(total_size);
 
-    CheckResult(t, X);
+    /*CheckResult(t, X);*/
   }
   
   return(0);
