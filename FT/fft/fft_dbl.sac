@@ -581,7 +581,7 @@ specialize double[8,2] ComplexFFT(
                                   double[8,2] v, 
                                   double[NX_2, 2] rofu
                                   );*/
-inline double[.,.] ComplexFFT(double dir, double[.,.] v, double[NX_2, 2] rofu)
+double[.,.] ComplexFFT(double dir, double[.,.] v, double[NX_2, 2] rofu)
 {
   left_v = ShuffleLeft(v);
   right_v= ShuffleRight(v);
