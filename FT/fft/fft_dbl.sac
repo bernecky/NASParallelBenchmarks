@@ -1,11 +1,17 @@
-
 import Array: all;
 import StdIO: all; 
-import Complex: all;
+/* import Complex: all; */
 import Math: all;
 import ArrayIO: all;
 
+#define NX 256
+#define NY 256
+#define NZ 128
+#define NX_2 128
+#define N 6
+#define NEXP 256
 
+#define CLASS_A
 
 
 /************************** former support lib **********************/
@@ -71,7 +77,7 @@ inline double rand_element(int[4] iv,int[4] sh, double seed,
  * calculated seperatly
  */
 
-inline double[+] Initialize2(double[+] A)
+inline double[.,.,.,.] Initialize2(double[.,.,.,.] A)
 {
   a = pow(5d,13d);   
   const1 = pow(2.0,46.0);
@@ -79,11 +85,11 @@ inline double[+] Initialize2(double[+] A)
   const3 = pow(2d,23d);
 
   seed = 314159265d;               /* some consts */
-  A = with(.<=iv<=.)
-      {
-        res = rand_element( iv, shape(A), seed, const1, const2, const3, a);
-      }
-      modarray( A, iv, res);
+  A = with{
+    (.<=iv<=.) {
+      res = rand_element( iv, shape(A), seed, const1, const2, const3, a);
+    } : res;
+  } : modarray(A);
   
 
 
@@ -98,7 +104,7 @@ inline double[+] Initialize2(double[+] A)
  */
 
 
-inline double[+] Initialize()
+inline double[NX,NY,NZ,2] Initialize()
 {
   A = genarray([NX,NY,NZ,2], 0d);
   
@@ -137,19 +143,21 @@ inline double[+] Initialize()
 /*********** no inlining possible ******************/
 
 #ifdef FRISO
-int[+] ComputeIndexMap()
+int[NX,NY,NZ] ComputeIndexMap()
 {
-  map = with(.<=iv=[i,j,k]<=.) {
-    ii = ( (i+NX/2) % NX ) - NX/2;
-    jj = ( (j+NY/2) % NY ) - NY/2;
-    kk = ( (k+NZ/2) % NZ ) - NZ/2;
-    ttt = ii*ii+jj*jj+kk*kk;
-  } genarray( [NX,NY,NZ], ttt);
+  map = with{
+    (.<=iv=[i,j,k]<=.) {
+      ii = ( (i+NX/2) % NX ) - NX/2;
+      jj = ( (j+NY/2) % NY ) - NY/2;
+      kk = ( (k+NZ/2) % NZ ) - NZ/2;
+      ttt = ii*ii+jj*jj+kk*kk;
+    } : ttt;
+  } : genarray( [NX,NY,NZ], 0d);
 
   return(map);
 }
 #else
-int[+] ComputeIndexMap()
+inline int[NX,NY,NZ] ComputeIndexMap()
 {
   map = genarray( [NX,NY,NZ], 0);
   map = with(. <= iv <= .)
@@ -171,7 +179,7 @@ int[+] ComputeIndexMap()
 
 
 #ifdef FRISO
-inline double[+] ComputeExponentialMap()
+inline double[NEXP] ComputeExponentialMap()
 {
   map = genarry([NEXP], 0d);
   
@@ -187,7 +195,7 @@ inline double[+] ComputeExponentialMap()
 
 }
 #else
-double[+] ComputeExponentialMap()
+double[NEXP] ComputeExponentialMap()
 {
   map = genarray([NEXP], 0d);
   
@@ -213,17 +221,17 @@ double[+] ComputeExponentialMap()
  * so called Roots Of Unity. Used by ComplexFFT()
  */
 
-double[+] RootsOfUnity( double dir)
+inline double[NX_2,2] RootsOfUnity( double dir)
 {
   u = genarray([NX_2,2], 0d);
   
   theta = dir * pi() / tod(shape(u)[0]);
-  wp = toc(cos(theta) - 1d , sin(theta)  );
+  wp = [cos(theta) - 1d, sin(theta)];
 
   u[0]=[1d,0d];
 
   for (i=1; i<shape(u)[0] ; i++) {
-    u[i] = todv( toc(u[i-1]) * wp + toc(u[i-1]));
+    u[i] = u[i-1] * wp + u[i-1];
   }
     
   return(u); 
@@ -258,24 +266,14 @@ inline int[+] TransposeSelect( int[+] permv, int[+] indexv)
 }
 
 
-#ifdef NEW_TYPECHECK
-
 inline double[+] Transpose( int[+] permv, double[+] A)
 {
-  res = with( .<= iv=[x,y,z] <= .)
-        genarray([shape(A)[[permv[[0]]]],shape(A)[[permv[[1]]]],shape(A)[[permv[[2]]]]], 
-                 A[ TransposeSelect( permv, iv) ] );
+  sh = [shape(A)[[permv[[0]]]],shape(A)[[permv[[1]]]],shape(A)[[permv[[2]]]]];
+  res = with {
+    ( .<= iv=[x,y,z] <= .) : A[ TransposeSelect( permv, iv) ];
+  } : genarray(sh, [0d,0d]);
   return( res);
 }
-
-#else
-
-#define Transpose( permv, A)                                                            \
- with( .<= iv=[x,y,z] <= .)                                                             \
- genarray( [shape(A)[[permv[[0]]]],shape(A)[[permv[[1]]]],shape(A)[[permv[[2]]]]],      \
-           A[ TransposeSelect( permv, iv) ] )
-
-#endif
 
 
 
@@ -286,7 +284,12 @@ inline double[+] Transpose( int[+] permv, double[+] A)
  */
 
 #ifdef FRISO
-inline double[+] Evolve( double[+] V, int t, int[+] index, double[+] expo)
+inline 
+double[NX,NY,NZ,2] Evolve( 
+                          double[NX,NY,NZ,2] V, 
+                          int t, 
+                          int[.,.,.] index, 
+                          double[+] expo)
 {
   res = with([0,0,0]<=iv=[i,j,k]<[NX,NY,NZ]) {
     newindex = t*index[i,j,k];
@@ -304,7 +307,7 @@ inline double[+] Evolve( double[+] V, int t, int[+] index, double[+] expo)
 
 #if (EVOLVE == 1)
 
-inline double[+] Evolve( double[+] V, int t, int[+] index, double[+] expo)
+inline double[*] Evolve( double[*] V, int t, int[*] index, double[*] expo)
 {
   res = with (. <= iv=[i,j,k,l] <= .)
        {
@@ -345,7 +348,7 @@ inline double[+] Evolve( double[+] V, int t, int[+] index, double[+] expo)
 #define CPLX
 #ifdef CPLX
 
-double[2] Checksum( double[+] X)
+double[2] Checksum( double[.,.,.,.] X)
 {
   result = [0d,0d];
 
@@ -361,7 +364,7 @@ double[2] Checksum( double[+] X)
 
 #else
 
-double, double Checksum( double[+] X)
+double, double Checksum( double[.,.,.,.] X)
 {
   real = 0d;
   imag = 0d;
@@ -386,7 +389,7 @@ double, double Checksum( double[+] X)
 
 
 
-complex Validate(int iter)
+double[2] Validate(int iter)
 {
 
 #ifdef CLASS_U    /* Userdefined */
@@ -471,7 +474,7 @@ complex Validate(int iter)
 
     
 
-return(toc(V[iter-1]));
+return(V[iter-1]);
 }
 
 
@@ -479,19 +482,21 @@ return(toc(V[iter-1]));
 
 
 
-inline double[+] ShuffleLeft(double[+] v)
+inline double[.,.] ShuffleLeft(double[.,.] v)
 {
-  res = with(.<=[i,j]<=.   ) {
-  } genarray(shape(v) / 2 +[0,1],v[i*2,j]);
+  res = with { 
+    (.<=[i,j]<=.) : v[i*2,j];
+  } : genarray(shape(v) / 2 +[0,1],0d);
  return( res);
 }
 
 
 
-inline double[+] ShuffleRight(double[+] v)
+inline double[.,.] ShuffleRight(double[.,.] v)
 {
-  res = with(.<=[i,j]<=.   ) {
-  } genarray(shape(v) / 2 +[0,1],v[i*2+1,j]);
+  res = with { 
+    (.<=[i,j]<=.) : v[i*2+1,j];
+  } : genarray(shape(v) / 2 +[0,1], 0d);
  return( res);
 }
 
@@ -500,32 +505,34 @@ inline double[+] ShuffleRight(double[+] v)
 
 inline double[4,2] ComplexFFT(double dir, double[4,2] v, double[NX_2,2] rofu)
 {
- 
-    w0 = toc(v[0]) + toc(v[2]);
-    w1 = toc(v[0]) - toc(v[2]);
-    w2 = toc(v[1]) + toc(v[3]);
-
-    w3 = dir * i() * ( toc(v[1]) - toc(v[3]) );
-
-
-    t0 = todv( w0 + w2 );
-    t1 = todv( w1 + w3 );
-    t2 = todv( w0 - w2 );
-    t3 = todv( w1 - w3 );
-    t = reshape( [4,2],[t0[0],t0[1],t1[0],t1[1],t2[0],t2[1],t3[0],t3[1]]);
-    return(t);
+  w0 = v[0] + v[2];
+  w1 = v[0] - v[2];
+  w2 = v[1] + v[3];
+  
+  w3 = dir * [0d,1d] * ( v[1] - v[3] );
+  
+  t0 = w0 + w2 ;
+  t1 = w1 + w3 ;
+  t2 = w0 - w2 ;
+  t3 = w1 - w3 ;
+  t = [
+       [t0[0],t0[1]],
+       [t1[0],t1[1]],
+       [t2[0],t2[1]],
+       [t3[0],t3[1]]
+  ];
+    
+  return(t);
 }
 
 
-double[+] MultRofu(double[+] v, double[+] rofu)
+double[.,.] MultRofu(double[.,.] v, double[NX_2,2] rofu)
 {
   index = shape(rofu)[0] / shape(v)[0];
 
-  select_rofu = with (. <= iv <= .)
-                {
-                  val = rofu[[iv[0]*index, iv[1]]];
-                }
-                genarray( shape(v), val);
+  select_rofu = with {
+    (. <= iv <= .) : rofu[[iv[0]*index, iv[1]]];
+  } : genarray( shape(v), 0d);
   
   prod = with ([0,0] <= iv < shape(v)-[0,1])
          {
@@ -543,10 +550,38 @@ double[+] MultRofu(double[+] v, double[+] rofu)
 
   return(prod);
 }
-
-
-
-double[+] ComplexFFT(double dir, double[+] v, double[+] rofu)
+/*
+specialize double[256,2] ComplexFFT(
+                                    double dir,
+                                    double[256,2] v, 
+                                    double[NX_2, 2] rofu
+                                    );
+specialize double[128,2] ComplexFFT(
+                                    double dir, 
+                                    double[128,2] v, 
+                                    double[NX_2, 2] rofu
+                                    );
+specialize double[64,2] ComplexFFT(
+                                   double dir, 
+                                   double[64,2] v, 
+                                   double[NX_2, 2] rofu
+                                   );
+specialize double[32,2] ComplexFFT(
+                                   double dir, 
+                                   double[32,2] v, 
+                                   double[NX_2, 2] rofu
+                                   );
+specialize double[16,2] ComplexFFT(
+                                   double dir, 
+                                   double[16,2] v, 
+                                   double[NX_2, 2] rofu
+                                   );
+specialize double[8,2] ComplexFFT(
+                                  double dir, 
+                                  double[8,2] v, 
+                                  double[NX_2, 2] rofu
+                                  );*/
+inline double[.,.] ComplexFFT(double dir, double[.,.] v, double[NX_2, 2] rofu)
 {
   left_v = ShuffleLeft(v);
   right_v= ShuffleRight(v);
@@ -556,8 +591,15 @@ double[+] ComplexFFT(double dir, double[+] v, double[+] rofu)
 
   fft_right_rofu = MultRofu(fft_right, rofu);
 
-  tmp = cat(0,fft_left+fft_right_rofu,fft_left-fft_right_rofu   );
+  first = fft_left+fft_right_rofu;
+  second = fft_left-fft_right_rofu;
 
+  tmp = first ++ second;
+  /* CAJ Test *
+  print(shape(first));
+  print(shape(second));
+  print(shape(tmp));
+  */
   return(tmp);
 } 
 
@@ -569,17 +611,17 @@ double[+] ComplexFFT(double dir, double[+] v, double[+] rofu)
 
 
 
-
 #ifdef NEW_TYPECHECK
 
 
-double[+] ComplexFFTSlice( double dir, double[+] in, double[+] rofu)
+double[.,.,.,.] ComplexFFTSlice( 
+                                double dir, 
+                                double[.,.,.,.] in, 
+                                double[NX_2,2] rofu)
 {  
-  result = with( [0,0] <= iv < drop([1], shape(in)) )
-           {
-             slice_fft = ComplexFFT(dir, in[iv], rofu);
-           }
-           modarray( in, iv, slice_fft);
+  result = with{
+    ([0,0] <= iv < drop([1], shape(in))) : ComplexFFT(dir, in[iv], rofu);
+  } : modarray(in);
 
   return(result);
 }
@@ -587,13 +629,46 @@ double[+] ComplexFFTSlice( double dir, double[+] in, double[+] rofu)
 
 #else
 
-double[+] ComplexFFTSlice( double dir, double[+] in, double[+] rofu)
+specialize double[128,256,256,2] ComplexFFTSlice(
+                                                 double dir, 
+                                                 double[128,256,256,2] in,
+                                                 double[NX_2, 2] rofu
+                                                 );
+specialize double[128,256,256,2] ComplexFFTSlice(
+                                                 double dir, 
+                                                 double[128,256,256,2] in,
+                                                 double[NX_2, 2] rofu
+                                                 );
+specialize double[256,128,256,2] ComplexFFTSlice(
+                                                 double dir, 
+                                                 double[256,128,256,2] in,
+                                                 double[NX_2, 2] rofu
+                                                 );
+specialize double[256,256,128,2] ComplexFFTSlice(
+                                                 double dir, 
+                                                 double[256,256,128,2] in,
+                                                 double[NX_2, 2] rofu
+                                                 );
+inline double[.,.,.,.] ComplexFFTSlice( 
+                                       double dir, 
+                                       double[.,.,.,.] in, 
+                                       double[NX_2,2] rofu
+                                       )
 {  
-  result = with( [0,0] <= iv < [shape(in)[0],shape(in)[1]] )
-           {
-             slice_fft = ComplexFFT(dir, in[iv], rofu);
-           }
-           modarray( in, iv, slice_fft);
+  /* CAJ Test *
+  print(shape(in));
+  */
+  result = with {
+    ([0,0] <= iv < [shape(in)[0],shape(in)[1]]) {
+      /* CAJ Test *
+      printf("%d, %d\n", iv[0], iv[1]);
+      */
+      val = ComplexFFT(dir, in[iv], rofu);
+      /* CAJ Test *
+      print(shape(val));
+      */
+    } : val;
+  } : modarray(in);
 
   return(result);
 }
@@ -607,7 +682,10 @@ double[+] ComplexFFTSlice( double dir, double[+] in, double[+] rofu)
 /************** THIS IS THE TOP-LEVEL FFT-Func **********************/
 
 
-double[+] Complex3dFFT(double dir, double[+] a, double[+] rofu)
+double[.,.,.,.] Complex3dFFT(
+                             double dir, 
+                             double[.,.,.,.] a, 
+                             double[NX_2,2] rofu)
 { 
   if (dir > 0d) {
     a_t = Transpose( ([2,1,0]), a);
