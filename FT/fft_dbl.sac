@@ -485,9 +485,6 @@ int main()
 
   V = Complex3dFFT( 1d, U, rofu);
 
-  print(V[0,0,0]);
-  print(V[0,1,0]);
-
   rofu = RootsOfUnity( -1d); 
 
 
@@ -501,9 +498,9 @@ int main()
 
     check = Checksum(X);
 
-    printf("Ergebnis: ");
+    printf("Checksum:\n");
     print(check);
-    printf("   Soll: ");
+    printf("Reference:\n");
     print(Validate(t));
     printf("\n");
   }
