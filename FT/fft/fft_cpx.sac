@@ -13,6 +13,17 @@ import Complex: all;
 
 #define CLASS_A
 
+Complex::complex[*] toc(double[*,2] a){
+  b = with{
+    (. <= iv <= .) {
+      l = a[iv++[0]];
+      r = a[iv++[1]];
+    } : toc(l, r);
+  } : genarray(drop([-1], shape(a)), zero());
+
+  return(b);
+}
+
 specialize double[.] todv(Complex::complex[.] a);
 specialize double[.,.] todv(Complex::complex[.,.] a);
 specialize double[.,.,.] todv(Complex::complex[.,.,.] a);
@@ -63,23 +74,22 @@ void print(Complex::complex c)
 
 /************************** former support lib **********************/
 
-
-/*inline*/
+inline
 double my_mod(double a, double b, double d1, double d2)
-  {
-    a1=floor(a/d2);
-    a2=a-d2*a1;
-    b1=floor(b/d2);
-    b2=b-d2*b1;
-    t1=a1*b2+a2*b1;
-    t2=floor(t1/d2);
-    t3=t1-d2*t2;
-    t4=d2*t3+a2*b2;
-    t5=floor(t4/d1);
-    c=t4-d1*t5;
-
-    return(c);
-  }
+{
+  a1=floor(a/d2);
+  a2=a-d2*a1;
+  b1=floor(b/d2);
+  b2=b-d2*b1;
+  t1=a1*b2+a2*b1;
+  t2=floor(t1/d2);
+  t3=t1-d2*t2;
+  t4=d2*t3+a2*b2;
+  t5=floor(t4/d1);
+  c=t4-d1*t5;
+  
+  return(c);
+}
 
 
 
@@ -91,6 +101,7 @@ double my_mod(double a, double b, double d1, double d2)
 Complex::complex[NX,NY,NZ] Initialize()
 {
   A = genarray([NX,NY,NZ], toc(0.0));
+  B = genarray([NX,NY,NZ,2], 0.0);
   
   seed=314159265d;
   rand = seed;
@@ -106,15 +117,17 @@ Complex::complex[NX,NY,NZ] Initialize()
   for(z=0 ; z <n3  ; z++) {
     for(y=0 ; y <n2  ; y++) {
       for(x=0 ; x <n1  ; x++) {
-	  rand = my_mod (a , rand, const1, const3) ;
-          r1 = rand * const2 ;
-	  rand = my_mod (a , rand, const1, const3) ;
-          r2 = rand * const2 ;
-          A[x,y,z] = toc(r1,r2);
+        rand = my_mod (a , rand, const1, const3) ;
+        r1 = rand * const2 ;
+        rand = my_mod (a , rand, const1, const3) ;
+        r2 = rand * const2 ;
+        /*B[x,y,z,0] = r1;
+          B[x,y,z,1] = r2;*/
+        A[x,y,z] = toc(r1,r2);
       }
     }
   }
-
+  /*  A = toc(B); */
   return(A);
 } 
 
@@ -348,6 +361,7 @@ return(toc(V[[iter-1]]));
 
 /************************** BEGIN OF FFT-Kernel**********************/
 /*inline*/
+/*
 Complex::complex[4] FFT1d(
                           double dir, 
                           Complex::complex[4] v, 
@@ -362,14 +376,15 @@ Complex::complex[4] FFT1d(
   
   fft_right *= rofu;
   
-  res = with {
+  /*  res = with {
     (0 <= [i] <= 1) : fft_left + fft_right;
     (2 <= [i] <= 3) : fft_left - fft_right;
-  } : genarray([4], toc(0));
+    } : genarray([4], toc(0));*/
 
+  res = (fft_left + fft_right) ++ (fft_left - fft_right);
   return( res);
 } 
-
+*/
 /*inline*/
 Complex::complex[2] FFT1d(
                           double dir, 
@@ -505,7 +520,9 @@ int main()
   expomap  = ComputeExponentialMap();
   rofu     = RootsOfUnity( 1d); 
 
+  printf("Start Initialize\n");
   U = Initialize();
+  printf("End Initialize\n");
 
   V = FFT3d_forward( U, rofu);
 

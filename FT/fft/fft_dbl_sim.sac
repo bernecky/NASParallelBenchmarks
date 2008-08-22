@@ -7,7 +7,7 @@ import RandLC: all;
 #define NX 256
 #define NY 256
 #define NZ 128
-#define NX_2 128
+#define NX_2 4
 #define N 6
 #define NEXP 219651
 
@@ -470,7 +470,7 @@ inline double[.,.,.,.] Complex3dFFT(
 
 
 
-
+/*
 int main()
 { 
   total_size = NX*NY*NZ;
@@ -510,7 +510,23 @@ int main()
   
   return(0);
 }
+*/
+int main(){
+  in1 = tod([[1,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0]]);
+  in2 = tod([[0,0],[1,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0]]);
 
+  rofu     = RootsOfUnity( 1d);
+
+  out1 = ComplexFFT(1d, in1, rofu);
+  out2 = ComplexFFT(1d, in2, rofu);
+
+  print(rofu);
+
+  print(out1);
+  print(out2);
+
+  return(0);
+}
 
 
 

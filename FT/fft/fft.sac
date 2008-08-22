@@ -5,13 +5,30 @@ import Complex: all;
 import Math: all;
 import ArrayIO: all;
 
+#define NX_2 50
+#define NX 100
+#define NY 100
+#define NZ 100
+#define N 100
+#define NEXP 100
+#define CLASS_U
 
-
+#define CPX
+#define NEW_TYPECHECK
 
 /************************** cpx **********************/
 
 typedef double[2] cpx;
 
+int [+] shape(cpx [+] a)
+{
+  return(shape((:double)a));
+}
+
+cpx [*] sel(int [*] i, cpx [*] a)
+{
+  return((:cpx)sel(i, (:double) a));
+}
 
 inline
 cpx + (cpx a, cpx b) 
@@ -22,6 +39,17 @@ cpx + (cpx a, cpx b)
   res = [x[0]+y[0] , x[1]+y[1]];
   
   return((:cpx)res);
+}
+
+inline
+cpx - (cpx a, cpx b)
+{
+  x = (:double[2]) a;
+  y = (:double[2]) b;
+  
+  res = [x[0]-y[0] , x[1]-y[1]];
+  
+  return((:cpx)res);  
 }
 
 
@@ -37,13 +65,22 @@ cpx * (cpx a, cpx b)
 }
 
 
-
 inline
 cpx[+] + (cpx[+] a, cpx[+] b)
 {
 
   res = with (.<=iv<=.)
   genarray(shape(a), ((:double[+])a)[iv] + ((:double[+])b)[iv]); 
+  
+  return((:cpx[+])res);
+}
+
+inline
+cpx[+] - (cpx[+] a, cpx[+] b)
+{
+
+  res = with (.<=iv<=.)
+  genarray(shape(a), ((:double[+])a)[iv] - ((:double[+])b)[iv]); 
   
   return((:cpx[+])res);
 }
@@ -477,7 +514,7 @@ complex Validate(int iter)
 		     0D,0D,
 		     0D,0D,
 		     0D,0D,
-		     0D,0D,]);
+		     0D,0D]);
 
 #endif
 
@@ -561,7 +598,7 @@ return(toc(V[iter-1]));
 
 
 
-inline double[+] ShuffleLeft(double[+] v)
+inline cpx[+] ShuffleLeft(cpx[+] v)
 {
   res = with(.<=[i,j]<=.   ) {
   } genarray(shape(v) / 2 +[0,1],v[i*2,j]);
@@ -570,7 +607,7 @@ inline double[+] ShuffleLeft(double[+] v)
 
 
 
-inline double[+] ShuffleRight(double[+] v)
+inline cpx[+] ShuffleRight(cpx[+] v)
 {
   res = with(.<=[i,j]<=.   ) {
   } genarray(shape(v) / 2 +[0,1],v[i*2+1,j]);
@@ -580,14 +617,14 @@ inline double[+] ShuffleRight(double[+] v)
 
 /************************** BEGIN OF FFT-Kernel**********************/
 
-inline double[4,2] ComplexFFT(double dir, double[4,2] v, double[NX_2,2] rofu)
+inline cpx[4] ComplexFFT(double dir, cpx[4] v, cpx[NX_2] rofu)
 {
  
-    w0 = toc(v[[0]]) + toc(v[[2]]);
-    w1 = toc(v[[0]]) - toc(v[[2]]);
-    w2 = toc(v[[1]]) + toc(v[[3]]);
+    w0 = v[[0]] + v[[2]];
+    w1 = v[[0]] - v[[2]];
+    w2 = v[[1]] + v[[3]];
 
-    w3 = dir * i() * ( toc(v[[1]]) - toc(v[3]) );
+    w3 = toc(dir) * i() * ( v[[1]] - v[3] );
 
 
     t0 = todv( w0 + w2 );
@@ -628,7 +665,7 @@ double[+] MultRofu(double[+] v, double[+] rofu)
 
 
 
-double[+] ComplexFFT(double dir, double[+] v, double[+] rofu)
+cpx[+] ComplexFFT(double dir, cpx[+] v, cpx[+] rofu)
 {
   left_v = ShuffleLeft(v);
   right_v= ShuffleRight(v);
@@ -638,8 +675,9 @@ double[+] ComplexFFT(double dir, double[+] v, double[+] rofu)
 
   fft_right_rofu = MultRofu(fft_right, rofu);
 
-  tmp = cat(0,fft_left+fft_right_rofu,fft_left-fft_right_rofu   );
-
+  /*  tmp = cat(0,fft_left+fft_right_rofu,fft_left-fft_right_rofu   );*/
+  /* Is this the same CAJ? */
+  tmp = [0,fft_left+fft_right_rofu,fft_left-fft_right_rofu];
   return(tmp);
 } 
 
@@ -655,7 +693,7 @@ double[+] ComplexFFT(double dir, double[+] v, double[+] rofu)
 #ifdef NEW_TYPECHECK
 
 
-double[+] ComplexFFTSlice( double dir, double[+] in, double[+] rofu)
+double[+] ComplexFFTSlice( double dir, cpx[+] in, cpx[+] rofu)
 {  
   result = with( [0,0] <= iv < drop([1], shape(in)) )
            {
