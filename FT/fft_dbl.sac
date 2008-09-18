@@ -4,15 +4,35 @@ import Math: all;
 import ArrayIO: all;
 import RandLC: all;
 
+#ifndef CLASS_B
+#ifndef CLASS_S
+#ifndef CLASS_T
+#ifndef CLASS_W
+
+#define CLASS_A
+
+#endif
+#endif
+#endif
+#endif
+
+#ifdef CLASS_A
 #define NX 256
 #define NY 256
 #define NZ 128
 #define NX_2 128
 #define N 6
 #define NEXP 219651
+#endif
 
-#define CLASS_A
-
+#ifdef CLASS_B
+#define NX 512
+#define NY 256
+#define NZ 256
+#define NX_2 256
+#define N 20
+#define NEXP 3932160
+#endif
 
 /************************** former support lib **********************/
 
@@ -388,6 +408,8 @@ specialize
 double[*] ComplexFFT(double dir, double[128,2] v, double[NX_2, 2] rofu);
 specialize 
 double[*] ComplexFFT(double dir, double[256,2] v, double[NX_2, 2] rofu);
+specialize 
+double[*] ComplexFFT(double dir, double[512,2] v, double[NX_2, 2] rofu);
 #endif
 #ifdef INLINE
 inline

@@ -5,14 +5,35 @@ import ArrayIO: all;
 import RandLC: all;
 import Complex: all;
 
+#ifndef CLASS_B
+#ifndef CLASS_S
+#ifndef CLASS_T
+#ifndef CLASS_W
+
+#define CLASS_A
+
+#endif
+#endif
+#endif
+#endif
+
+#ifdef CLASS_A
 #define NX 256
 #define NY 256
 #define NZ 128
 #define NX_2 128
 #define N 6
 #define NEXP 219651
+#endif
 
-#define CLASS_A
+#ifdef CLASS_B
+#define NX 512
+#define NY 256
+#define NZ 256
+#define NX_2 256
+#define N 20
+#define NEXP 3932160
+#endif
 
 
 /************************** former support lib **********************/
@@ -384,19 +405,7 @@ inline Complex::complex[.] MultRofu(
 
 #ifdef SPE
 specialize Complex::complex[*] ComplexFFT(double dir,
-                                            Complex::complex[256] v,
-                                            Complex::complex[NX_2] rofu
-                                            );
-specialize Complex::complex[*] ComplexFFT(double dir,
-                                            Complex::complex[128] v,
-                                            Complex::complex[NX_2] rofu
-                                            );
-specialize Complex::complex[*] ComplexFFT(double dir,
-                                          Complex::complex[64] v,
-                                          Complex::complex[NX_2] rofu
-                                          );
-specialize Complex::complex[*] ComplexFFT(double dir,
-                                          Complex::complex[32] v,
+                                          Complex::complex[8] v,
                                           Complex::complex[NX_2] rofu
                                           );
 specialize Complex::complex[*] ComplexFFT(double dir,
@@ -404,9 +413,26 @@ specialize Complex::complex[*] ComplexFFT(double dir,
                                           Complex::complex[NX_2] rofu
                                           );
 specialize Complex::complex[*] ComplexFFT(double dir,
-                                          Complex::complex[8] v,
+                                          Complex::complex[32] v,
                                           Complex::complex[NX_2] rofu
                                           );
+specialize Complex::complex[*] ComplexFFT(double dir,
+                                          Complex::complex[64] v,
+                                          Complex::complex[NX_2] rofu
+                                          );
+specialize Complex::complex[*] ComplexFFT(double dir,
+                                            Complex::complex[128] v,
+                                            Complex::complex[NX_2] rofu
+                                            );
+specialize Complex::complex[*] ComplexFFT(double dir,
+                                            Complex::complex[256] v,
+                                            Complex::complex[NX_2] rofu
+                                            );
+specialize Complex::complex[*] ComplexFFT(double dir,
+                                            Complex::complex[512] v,
+                                            Complex::complex[NX_2] rofu
+                                            );
+
 #endif
 Complex::complex[.] ComplexFFT(
                                double dir, 
