@@ -3,6 +3,7 @@ import StdIO: all;
 import Math: all;
 import ArrayIO: all;
 import RandLC: all;
+import Complex: all;
 
 #define NX 256
 #define NY 256
@@ -16,19 +17,16 @@ import RandLC: all;
 
 /************************** former support lib **********************/
 
-inline double[2] cm(double[2] a, double[2] b)
-{
-  r = a[0] * b[0] - a[1] * b[1];
-  i = a[0] * b[1] + a[1] * b[0];
-  return([r,i]);
-}
-
 inline double sq(double a){
   return(a*a);
 }
 
 inline int sq(int a){
   return(a*a);
+}
+
+inline Complex::complex [NX,NY,NZ] toc(double[NX,NY,NZ,2] a){
+  return((:Complex::complex[NX,NY,NZ])a);
 }
 
 inline double my_mod(double a, double b, double d1, double d2)
@@ -50,9 +48,13 @@ inline double my_mod(double a, double b, double d1, double d2)
 /* Init A with pseudorandom numbers defined by NAS
  * Calculated sequentielly 
  */
-double[NX,NY,NZ,2] Initialize()
+Complex::complex[NX,NY,NZ] Initialize()
 {
-  A = genarray([NX,NY,NZ,2], 0d);
+#ifdef MOP
+  A = genarray([NX,NY,NZ], [0d,0d]);
+#else
+  A = genarray([NX,NY,NZ], zero());
+#endif
   
   seed=314159265d;
   rand = seed;
@@ -70,15 +72,22 @@ double[NX,NY,NZ,2] Initialize()
   for(z=0 ; z <n3  ; z++) {
     for(y=0 ; y <n2  ; y++) {
       for(x=0 ; x <n1  ; x++) {
-	for(i=0 ; i<2 ; i++) {
-          /*	  rand = my_mod (a , rand, const1, const3) ;
-                  A[x,y,z,i] = rand * const2;*/
-          A[x,y,z,i] = randlc(rlc);
-	}
+        r = randlc(rlc);
+        i = randlc(rlc);
+#ifdef MOP
+        A[x,y,z,0] = r;
+        A[x,y,z,1] = i;
+#else
+        A[x,y,z] = toc(r,i);
+#endif
       }
     }
   }
+#ifdef MOP
+  return((:Complex::complex[NX,NY,NZ])A);
+#else
   return(A);
+#endif
 } 
 
 
@@ -123,20 +132,20 @@ inline double[NEXP] ComputeExponentialMap()
 }
 
 /* Initializes the double[+] u with sines and cosines  
- * so called Roots Of Unity. Used by ComplexFFT()
+ * so called Roots Of Unity. Used by Complex::ComplexFFT()
  */
 
-inline double[NX_2,2] RootsOfUnity( double dir)
+inline Complex::complex[NX_2] RootsOfUnity( double dir)
 {
-  u = genarray([NX_2,2], 0d);
+  u = genarray([NX_2], zero());
   
   theta = dir * pi() / tod(shape(u)[0]);
-  wp = [cos(theta) - 1d, sin(theta)];
+  wp = toc(cos(theta) - 1d, sin(theta));
 
-  u[0]=[1d,0d];
+  u[0]=toc(1d,0d);
 
   for (i=1; i<shape(u)[0] ; i++) {
-    u[i] = cm(u[i-1], wp) + u[i-1];
+    u[i] = u[i-1] * wp + u[i-1];
   }
     
   return(u); 
@@ -171,19 +180,13 @@ inline int[3] TransposeSelect( int[3] permv, int[3] indexv)
 }
 
 
-inline double[.,.,.,.] Transpose( int[3] permv, double[.,.,.,.] A)
+inline 
+Complex::complex[.,.,.] Transpose(int[3] permv, Complex::complex[.,.,.] A)
 {
-  a = permv[[0]];
-  b = permv[[1]];
-  c = permv[[2]];
-  sh = [
-        shape(A)[[a]],
-        shape(A)[[b]],
-        shape(A)[[c]]
-  ];
+  sh = [shape(A)[[permv[[0]]]],shape(A)[[permv[[1]]]],shape(A)[[permv[[2]]]]];
   res = with {
     (. <= iv <= .) : A[ TransposeSelect( permv, iv) ];
-  } : genarray(sh, [0d,0d]);
+  } : genarray(sh, zero());
   return( res);
 }
 
@@ -195,27 +198,27 @@ inline double[.,.,.,.] Transpose( int[3] permv, double[.,.,.,.] A)
 /* Here the time-evaluation is done 
  */
 
-inline double[NX,NY,NZ,2] Evolve( 
-                                 double[NX,NY,NZ,2] V, 
-                                 int t, 
-                                 int[NX,NY,NZ] index, 
-                                 double[NEXP] expo
-                                 )
+inline Complex::complex[NX,NY,NZ] Evolve( 
+                                         Complex::complex[NX,NY,NZ] V, 
+                                         int t, 
+                                         int[NX,NY,NZ] index, 
+                                         double[NEXP] expo
+                                         )
 {
   res = with {
     (. <= iv <= .) {
       newindex = t*index[iv];
       exponent = expo[[newindex]];
-      val = cm(V[iv], [exponent,0d]);
+      val = V[iv] * toc(exponent,0d);
     } : val;
-  } : genarray( [NX,NY,NZ], [0d,0d]);
+  } : genarray( [NX,NY,NZ], zero());
 
   return(res);
 }
 
 /* Calculate the sum of 1024 elements for verification
  */
-inline double[2] Checksum( double[NX,NY,NZ,2] X)
+inline Complex::complex Checksum( Complex::complex[NX,NY,NZ] X)
 {
   val = with {
     ( [0] <= [j] < [1024] ) {
@@ -223,7 +226,7 @@ inline double[2] Checksum( double[NX,NY,NZ,2] X)
       r = (3 * j) % shape(X)[1];
       s = (5 * j) % shape(X)[2];
     } : X[[q,r,s]];
-  } : fold(+, [0d,0d]);
+  } : fold(+, zero());
 
   return(val);
 }
@@ -232,7 +235,7 @@ inline double[2] Checksum( double[NX,NY,NZ,2] X)
 /* This Function returns the precomputed correct values for each 
  * Class. 
  */
-inline double[2] Validate(int iter)
+inline Complex::complex Validate(int iter)
 {
 
 #ifdef CLASS_U    /* Userdefined */
@@ -317,82 +320,99 @@ inline double[2] Validate(int iter)
 
     
 
-return(V[iter-1]);
+return(toc(V[iter-1]));
 }
 
 
 /************************** Shuffle operations **********************/
 
-inline double[.,.] ShuffleLeft(double[.,.] v)
+
+inline Complex::complex[.] ShuffleLeft(Complex::complex[.] v)
 {
   res = with { 
     (. <= [i] <= .) : v[i*2];
-  } : genarray([shape(v)[[0]] / 2],[0d,0d]);
+  } : genarray(shape(v) / 2, zero());
  return( res);
 }
 
-inline double[.,.] ShuffleRight(double[.,.] v)
+inline Complex::complex[.] ShuffleRight(Complex::complex[.] v)
 {
   res = with { 
     (.<= [i] <=.) : v[i*2+1];
-  } : genarray([shape(v)[[0]] / 2], [0d,0d]);
+  } : genarray(shape(v) / 2, zero());
  return( res);
 }
 
 
 /************************** BEGIN OF FFT-Kernel**********************/
 
-inline double[4,2] ComplexFFT(double dir, double[4,2] v, double[NX_2,2] rofu)
+inline Complex::complex[4] ComplexFFT(
+                                      double dir, 
+                                      Complex::complex[4] v, 
+                                      Complex::complex[NX_2] rofu
+                                      )
 {
   w0 = v[0] + v[2];
   w1 = v[0] - v[2];
   w2 = v[1] + v[3];
   
-  w3 = cm([dir,0d], cm([0d,1d], ( v[1] - v[3] )));
+  w3 = toc(dir,0d) * i() * ( v[1] - v[3] );
   
   t0 = w0 + w2 ;
   t1 = w1 + w3 ;
   t2 = w0 - w2 ;
   t3 = w1 - w3 ;
-  t = [
-       [t0[0],t0[1]],
-       [t1[0],t1[1]],
-       [t2[0],t2[1]],
-       [t3[0],t3[1]]
-  ];
+
+  t = [t0,t1,t2,t3];
     
   return(t);
 }
 
-inline double[.,.] MultRofu(double[.,.] v, double[NX_2,2] rofu)
+inline Complex::complex[.] MultRofu(
+                                    Complex::complex[.] v, 
+                                    Complex::complex[NX_2] rofu
+                                    )
 {
   index = shape(rofu)[0] / shape(v)[0];
 
   prod = with {
-    (. <= [i] <= .) : cm(v[i], rofu[[i]*index]);
-  } : genarray( [shape(v)[[0]]], [0d,0d]);
+    (. <= [i] <= .) : v[i] * rofu[[i]*index];
+  } : genarray( [shape(v)[[0]]], zero());
 
   return(prod);
 }
 
 #ifdef SPE
-specialize 
-double[*] ComplexFFT(double dir, double[  8,2] v, double[NX_2, 2] rofu);
-specialize 
-double[*] ComplexFFT(double dir, double[ 16,2] v, double[NX_2, 2] rofu);
-specialize 
-double[*] ComplexFFT(double dir, double[ 32,2] v, double[NX_2, 2] rofu);
-specialize 
-double[*] ComplexFFT(double dir, double[ 64,2] v, double[NX_2, 2] rofu);
-specialize 
-double[*] ComplexFFT(double dir, double[128,2] v, double[NX_2, 2] rofu);
-specialize 
-double[*] ComplexFFT(double dir, double[256,2] v, double[NX_2, 2] rofu);
+specialize Complex::complex[*] ComplexFFT(double dir,
+                                            Complex::complex[256] v,
+                                            Complex::complex[NX_2] rofu
+                                            );
+specialize Complex::complex[*] ComplexFFT(double dir,
+                                            Complex::complex[128] v,
+                                            Complex::complex[NX_2] rofu
+                                            );
+specialize Complex::complex[*] ComplexFFT(double dir,
+                                          Complex::complex[64] v,
+                                          Complex::complex[NX_2] rofu
+                                          );
+specialize Complex::complex[*] ComplexFFT(double dir,
+                                          Complex::complex[32] v,
+                                          Complex::complex[NX_2] rofu
+                                          );
+specialize Complex::complex[*] ComplexFFT(double dir,
+                                          Complex::complex[16] v,
+                                          Complex::complex[NX_2] rofu
+                                          );
+specialize Complex::complex[*] ComplexFFT(double dir,
+                                          Complex::complex[8] v,
+                                          Complex::complex[NX_2] rofu
+                                          );
 #endif
-#ifdef INLINE
-inline
-#endif
-double[.,.] ComplexFFT(double dir, double[.,.] v, double[NX_2, 2] rofu)
+Complex::complex[.] ComplexFFT(
+                               double dir, 
+                               Complex::complex[.] v, 
+                               Complex::complex[NX_2] rofu
+                               )
 {
   left_v = ShuffleLeft(v);
   right_v= ShuffleRight(v);
@@ -411,17 +431,17 @@ double[.,.] ComplexFFT(double dir, double[.,.] v, double[NX_2, 2] rofu)
 
 /* slices array in direction (k), calculates fft(), */
 /* reassebles slices to array */
-inline double[.,.,.,.] ComplexFFTSlice( 
-                                       double dir, 
-                                       double[.,.,.,.] in, 
-                                       double[NX_2,2] rofu
-                                       )
+inline Complex::complex[.,.,.] ComplexFFTSlice( 
+                                               double dir, 
+                                               Complex::complex[.,.,.] in, 
+                                               Complex::complex[NX_2] rofu
+                                               )
 {  
   result = with {
     (. <= iv <= .) {
       val = ComplexFFT(dir, in[iv], rofu);
     } : val;
-  } : genarray([shape(in)[0],shape(in)[1]], genarray([shape(in)[2]], [0d,0d]));
+  } : genarray([shape(in)[0],shape(in)[1]], genarray([shape(in)[2]], zero()));
 
   return(result);
 }
@@ -433,10 +453,11 @@ inline double[.,.,.,.] ComplexFFTSlice(
 /************** THIS IS THE TOP-LEVEL FFT-Func **********************/
 
 
-inline double[.,.,.,.] Complex3dFFT(
-                             double dir, 
-                             double[.,.,.,.] a, 
-                             double[NX_2,2] rofu)
+inline Complex::complex[NX,NY,NZ] Complex3dFFT(
+                                               double dir, 
+                                               Complex::complex[NX,NY,NZ] a, 
+                                               Complex::complex[NX_2] rofu
+                                            )
 { 
   if (dir > 0d) {
     a_t = Transpose( ([2,1,0]), a);
@@ -469,25 +490,25 @@ int main()
 { 
   total_size = NX*NY*NZ;
   printf(" Dimension: %d x %d x %d, N-Iter: %d  Total Size: %d Complex\n",
-         NX, NY, NZ, N, total_size);
+      NX, NY, NZ, N, total_size);
 
   indexmap = ComputeIndexMap();
   expomap  = ComputeExponentialMap();
   rofu     = RootsOfUnity( 1d); 
-
   U = Initialize();
+  printf(".\n");
   V = Complex3dFFT( 1d, U, rofu);
-
+  printf(".\n");
   rofu = RootsOfUnity( -1d); 
 
 
   /*****  Performing N iterations for timestep t *****************/
 
   for (t=1 ; t<=N ; t++) {
-    
+
     W = Evolve( V, t, indexmap, expomap);
- 
-    X = Complex3dFFT( -1d, W, rofu) / tod(total_size);
+
+    X = Complex3dFFT( -1d, W, rofu) / toc(tod(total_size),0d);
 
     check = Checksum(X);
 
@@ -497,7 +518,7 @@ int main()
     print(Validate(t));
     printf("\n");
   }
-  
+
   return(0);
 }
 
