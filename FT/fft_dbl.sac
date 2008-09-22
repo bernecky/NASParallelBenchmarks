@@ -395,7 +395,6 @@ inline double[.,.] MultRofu(double[.,.] v, double[NX_2,2] rofu)
   return(prod);
 }
 
-#ifdef SPE
 specialize 
 double[*] ComplexFFT(double dir, double[  8,2] v, double[NX_2, 2] rofu);
 specialize 
@@ -410,7 +409,6 @@ specialize
 double[*] ComplexFFT(double dir, double[256,2] v, double[NX_2, 2] rofu);
 specialize 
 double[*] ComplexFFT(double dir, double[512,2] v, double[NX_2, 2] rofu);
-#endif
 #ifdef INLINE
 inline
 #endif

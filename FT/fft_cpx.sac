@@ -403,7 +403,6 @@ inline Complex::complex[.] MultRofu(
   return(prod);
 }
 
-#ifdef SPE
 specialize Complex::complex[*] ComplexFFT(double dir,
                                           Complex::complex[8] v,
                                           Complex::complex[NX_2] rofu
@@ -432,7 +431,8 @@ specialize Complex::complex[*] ComplexFFT(double dir,
                                             Complex::complex[512] v,
                                             Complex::complex[NX_2] rofu
                                             );
-
+#ifdef INLINE
+inline
 #endif
 Complex::complex[.] ComplexFFT(
                                double dir, 
