@@ -162,55 +162,48 @@ inline double[NX_2,2] RootsOfUnity( double dir)
   return(u); 
 }
 
-
+/* swap the index and value*/
 inline int[3] InvertPermVect(int[3] pv) 
 {
+
   pv_inv = with{
-    (. <= iv <= .) {
+    (. <= [i] <= .) {
       val = 0;
-      if (pv[[2]] == iv[[0]])
-        val = 2;
-      else if (pv[[1]] == iv[[0]])
-        val = 1;
+      for (j=1; j<shape(pv)[[0]]; j++){
+        if (pv[[j]] == i)
+          val = j;
+      }
     } : val;
   } : modarray(pv);
 
   return(pv_inv);
 }
 
-
+/* Compute index in original array */
 inline int[3] TransposeSelect( int[3] permv, int[3] indexv)
 {
-  permv_inv = InvertPermVect(permv);
-  
+  permv = InvertPermVect(permv);
+
   res = with {
-    (. <= iv <= .) : indexv[[permv_inv[iv]]];
+    (. <= iv <= .) : indexv[[permv[iv]]];
   } : modarray( indexv);
   
   return( res);
 }
 
-
+/* Change the order of the dimensions */
 inline double[.,.,.,.] Transpose( int[3] permv, double[.,.,.,.] A)
 {
   a = permv[[0]];
   b = permv[[1]];
   c = permv[[2]];
-  sh = [
-        shape(A)[[a]],
-        shape(A)[[b]],
-        shape(A)[[c]]
-  ];
+  sh = [ shape(A)[[a]], shape(A)[[b]], shape(A)[[c]] ];
+
   res = with {
     (. <= iv <= .) : A[ TransposeSelect( permv, iv) ];
   } : genarray(sh, [0d,0d]);
   return( res);
 }
-
-
-
-
-
 
 /* Here the time-evaluation is done 
  */
@@ -343,22 +336,13 @@ return(V[iter-1]);
 
 /************************** Shuffle operations **********************/
 
-inline double[.,.] ShuffleLeft(double[.,.] v)
+inline double[.,.] condense(double[.,.] v)
 {
   res = with { 
     (. <= [i] <= .) : v[i*2];
-  } : genarray([shape(v)[[0]] / 2],[0d,0d]);
+  } : genarray([(shape(v)[[0]]+1) / 2],[0d,0d]);
  return( res);
 }
-
-inline double[.,.] ShuffleRight(double[.,.] v)
-{
-  res = with { 
-    (.<= [i] <=.) : v[i*2+1];
-  } : genarray([shape(v)[[0]] / 2], [0d,0d]);
- return( res);
-}
-
 
 /************************** BEGIN OF FFT-Kernel**********************/
 
@@ -414,8 +398,9 @@ inline
 #endif
 double[.,.] ComplexFFT(double dir, double[.,.] v, double[NX_2, 2] rofu)
 {
-  left_v = ShuffleLeft(v);
-  right_v= ShuffleRight(v);
+
+  left_v = condense(v);
+  right_v = condense(drop([1], v));
  
   fft_left = ComplexFFT(dir, left_v , rofu);
   fft_right = ComplexFFT(dir, right_v , rofu);

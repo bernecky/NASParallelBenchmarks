@@ -172,22 +172,22 @@ inline Complex::complex[NX_2] RootsOfUnity( double dir)
   return(u); 
 }
 
-
-inline int[3] InvertPermVect(int[3] pv) 
+/* swap the index and value*/
+inline int[3] InvertPermVect(int[3] pv)
 {
+
   pv_inv = with{
-    (. <= iv <= .) {
+    (. <= [i] <= .) {
       val = 0;
-      if (pv[[2]] == iv[[0]])
-        val = 2;
-      else if (pv[[1]] == iv[[0]])
-        val = 1;
+      for (j=1; j<shape(pv)[[0]]; j++){
+        if (pv[[j]] == i)
+          val = j;
+      }
     } : val;
   } : modarray(pv);
 
   return(pv_inv);
 }
-
 
 inline int[3] TransposeSelect( int[3] permv, int[3] indexv)
 {
@@ -200,7 +200,6 @@ inline int[3] TransposeSelect( int[3] permv, int[3] indexv)
   return( res);
 }
 
-
 inline 
 Complex::complex[.,.,.] Transpose(int[3] permv, Complex::complex[.,.,.] A)
 {
@@ -210,11 +209,6 @@ Complex::complex[.,.,.] Transpose(int[3] permv, Complex::complex[.,.,.] A)
   } : genarray(sh, zero());
   return( res);
 }
-
-
-
-
-
 
 /* Here the time-evaluation is done 
  */
@@ -348,20 +342,12 @@ return(toc(V[iter-1]));
 /************************** Shuffle operations **********************/
 
 
-inline Complex::complex[.] ShuffleLeft(Complex::complex[.] v)
+inline Complex::complex[.] condense(Complex::complex[.] v)
 {
-  res = with { 
-    (. <= [i] <= .) : v[i*2];
-  } : genarray(shape(v) / 2, zero());
- return( res);
-}
-
-inline Complex::complex[.] ShuffleRight(Complex::complex[.] v)
-{
-  res = with { 
-    (.<= [i] <=.) : v[i*2+1];
-  } : genarray(shape(v) / 2, zero());
- return( res);
+  res = with {
+    (. <= iv <= .) : v[iv*2];
+  } : genarray((shape(v)+1) / 2,zero());
+  return( res);
 }
 
 
@@ -440,8 +426,9 @@ Complex::complex[.] ComplexFFT(
                                Complex::complex[NX_2] rofu
                                )
 {
-  left_v = ShuffleLeft(v);
-  right_v= ShuffleRight(v);
+
+  left_v = condense(v);
+  right_v = condense(drop([1], v));
  
   fft_left = ComplexFFT(dir, left_v , rofu);
   fft_right = ComplexFFT(dir, right_v , rofu);
