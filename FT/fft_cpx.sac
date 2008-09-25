@@ -364,13 +364,8 @@ inline Complex::complex[4] ComplexFFT(
   w2 = v[1] + v[3];
   
   w3 = toc(dir,0d) * i() * ( v[1] - v[3] );
-  
-  t0 = w0 + w2 ;
-  t1 = w1 + w3 ;
-  t2 = w0 - w2 ;
-  t3 = w1 - w3 ;
 
-  t = [t0,t1,t2,t3];
+  t = [w0+w2,w1+w3,w0-w2,w1-w3];
     
   return(t);
 }

@@ -8,9 +8,11 @@ import RandLC: all;
 #ifndef CLASS_S
 #ifndef CLASS_T
 #ifndef CLASS_W
+#ifndef CLASS_A
 
 #define CLASS_A
 
+#endif
 #endif
 #endif
 #endif
@@ -31,7 +33,7 @@ import RandLC: all;
 #define NZ 256
 #define NX_2 256
 #define N 20
-#define NEXP 3932160
+#define NEXP 2196510
 #endif
 
 /************************** former support lib **********************/
@@ -348,22 +350,14 @@ inline double[.,.] condense(double[.,.] v)
 
 inline double[4,2] ComplexFFT(double dir, double[4,2] v, double[NX_2,2] rofu)
 {
+ 
   w0 = v[0] + v[2];
   w1 = v[0] - v[2];
   w2 = v[1] + v[3];
   
   w3 = cm([dir,0d], cm([0d,1d], ( v[1] - v[3] )));
-  
-  t0 = w0 + w2 ;
-  t1 = w1 + w3 ;
-  t2 = w0 - w2 ;
-  t3 = w1 - w3 ;
-  t = [
-       [t0[0],t0[1]],
-       [t1[0],t1[1]],
-       [t2[0],t2[1]],
-       [t3[0],t3[1]]
-  ];
+
+  t = [w0+w2,w1+w3,w0-w2,w1-w3];
     
   return(t);
 }
@@ -393,12 +387,12 @@ specialize
 double[*] ComplexFFT(double dir, double[256,2] v, double[NX_2, 2] rofu);
 specialize 
 double[*] ComplexFFT(double dir, double[512,2] v, double[NX_2, 2] rofu);
+
 #ifdef INLINE
 inline
 #endif
 double[.,.] ComplexFFT(double dir, double[.,.] v, double[NX_2, 2] rofu)
 {
-
   left_v = condense(v);
   right_v = condense(drop([1], v));
  
@@ -421,7 +415,7 @@ inline double[.,.,.,.] ComplexFFTSlice(
                                        double[.,.,.,.] in, 
                                        double[NX_2,2] rofu
                                        )
-{  
+{
   result = with {
     (. <= iv <= .) {
       val = ComplexFFT(dir, in[iv], rofu);
@@ -440,30 +434,27 @@ inline double[.,.,.,.] ComplexFFTSlice(
 
 inline double[.,.,.,.] Complex3dFFT(
                              double dir, 
-                             double[.,.,.,.] a, 
+                             double[NX,NY,NZ,2] a, 
                              double[NX_2,2] rofu)
 { 
   if (dir > 0d) {
     a_t = Transpose( ([2,1,0]), a);
-    b   = ComplexFFTSlice( 1d, a_t, rofu);
+    b   = {[i,j] -> ComplexFFT(dir, a_t[i,j], rofu)};
     b_t = Transpose( ([0,2,1]),  b);
-    c   = ComplexFFTSlice( 1d, b_t, rofu);
+    c   = {[i,j] -> ComplexFFT(dir, b_t[i,j], rofu)};
     c_t = Transpose( ([1,2,0]),  c);
-    d   = ComplexFFTSlice( 1d, c_t, rofu);
-    res = d;
+    r   = {[i,j] -> ComplexFFT(dir, c_t[i,j], rofu)};
   }
   else {  
-    u   = ComplexFFTSlice( -1d, a, rofu); 
+    u   = {[i,j] -> ComplexFFT(dir, a[i,j], rofu)};
     u_t = Transpose( ([0,2,1]), u); 
-    v   = ComplexFFTSlice( -1d, u_t, rofu); 
+    v   = {[i,j] -> ComplexFFT(dir, u_t[i,j], rofu)};
     v_t = Transpose( ([2,1,0]), v);
-    w   = ComplexFFTSlice( -1d, v_t, rofu); 
-    w_t = Transpose( ([2,0,1]), w);
- 
-    res = w_t;
+    w   = {[i,j] -> ComplexFFT(dir, v_t[i,j], rofu)};
+    r   = Transpose( ([2,0,1]), w);
  }
 
-  return(res);
+  return(r);
 }
 
 
