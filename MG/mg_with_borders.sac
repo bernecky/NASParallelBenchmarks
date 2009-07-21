@@ -405,10 +405,10 @@ int main()
   int[10,3] pos;
   int[10,3] neg;
 
-  size = FibreScanInt( stdin);
-  iter = FibreScanInt( stdin);
-  pos  = FibreScanIntArray( stdin, [10,3]);
-  neg  = FibreScanIntArray( stdin, [10,3]);
+  size = FibreScanIntArray();
+  iter = FibreScanIntArray();
+  pos  = FibreScanIntArray();
+  neg  = FibreScanIntArray();
 
   if(size == 256) {
     u_256 = with {

@@ -354,11 +354,11 @@ int main() {
  * NONZER            : Number of non zeros
  * ZETA_VERIFY_VALUE : The correct Zeta
  */
-  N = FibreScanInt(stdin);
-  NITER = FibreScanInt(stdin);
-  LAMBDA = FibreScanInt(stdin);
-  NONZER = FibreScanInt(stdin);
-  ZETA_VERIFY_VALUE = FibreScanDouble(stdin);
+  N = FibreScanIntArray();
+  NITER = FibreScanIntArray();
+  LAMBDA = FibreScanIntArray();
+  NONZER = FibreScanIntArray();
+  ZETA_VERIFY_VALUE = FibreScanDoubleArray();
 
   printf("\n\n SAC Parallel Benchmarks (NPB3.2-SAC)"
               " - CG Benchmark\n");
