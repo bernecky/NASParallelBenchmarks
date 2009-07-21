@@ -83,7 +83,7 @@ double, double, int[10] group(RandLC &rand, int n){
 
 int main ()
 {
-  problemSize = FibreScanIntArray();
+  problemSize = (:int)FibreScanIntArray();
   problemSize2 = problemSize;
   groups = 1;
   if (problemSize > 25){
