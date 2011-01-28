@@ -354,6 +354,19 @@ double[S0,S0,S0] mgrid( double[S0,S0,S0] r)
   return( z);
 }
 
+specialize
+double nas_mgrid( double[S0, S0, S0] u, double[S0, S0, S0] v,
+                  int [10, 3] pos     , int[10, 3] neg, int iter );
+specialize
+double nas_mgrid( double[S1, S1, S1] u, double[S1, S1, S1] v,
+                  int [10, 3] pos     , int[10, 3] neg, int iter );
+specialize
+double nas_mgrid( double[S2, S2, S2] u, double[S2, S2, S2] v,
+                  int [10, 3] pos     , int[10, 3] neg, int iter );
+specialize
+double nas_mgrid( double[S3, S3, S3] u, double[S3, S3, S3] v,
+                  int [10, 3] pos     , int[10, 3] neg, int iter );
+
 double nas_mgrid( double[+] u, double[+] v, int[+] pos, int[+] neg, int iter)
 {
   for( i=0; i<10; i++)
