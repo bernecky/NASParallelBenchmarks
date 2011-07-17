@@ -20,7 +20,7 @@ import StdIO: all;
 import Array: all;
 import Math : all;
 
-use PTimer: all;
+use RTimer: all;
 use RandLC: all;    
 
 /*							
@@ -307,7 +307,7 @@ double [.], int[.], int[.] sparse(int[.] arow, int[.,.] acol, double[.,.] aelt,
   return(a,colidx,rowstr);
 } 
 
-
+#if 0
 /*
  * getStartTime, getEndtTime
  *
@@ -338,6 +338,7 @@ ptime, double[.] getinitStopa( double[.] a) {
   return( getptime(), a);
 }
 
+#endif
 
 
 /** <!--********************************************************************-->
@@ -348,7 +349,7 @@ ptime, double[.] getinitStopa( double[.] a) {
  ******************************************************************************/
 int main() {
 
-  /* N                 : Number of rows & columns
+/* N                 : Number of rows & columns
  * NITER             : Number of iterations
  * LAMBDA            : Shift of the main diagonal of a sparse Matrix A
  * NONZER            : Number of non zeros
@@ -362,17 +363,21 @@ int main() {
 
   printf("\n\n SAC Parallel Benchmarks (NPB3.2-SAC)"
               " - CG Benchmark\n");
+
+  rtimer = createRTimer( );
+
   n = N; nz = n *(toi(NONZER)+1)*(toi(NONZER)+1);
   a = genarray([nz],0d);
        /* ... Measure Initialisation Time  */
-  init_start, a = getinitStarta(a);
+  startRTimer( rtimer);
        /* ... generate the input sparse Matrix A which is formed by a triple (a, colidx, rowstr) */
   a,colidx,rowstr = makea(n, toi(NONZER), NONZER, LAMBDA);
   x = genarray([n],1d);
   zeta = 0d;
-  init_end, a = getinitStopa(a);
+  stopRTimer( rtimer);
+  
        /* ... End Measure Initialisation Time  */
-  init_time = diffptime( init_start, init_end);
+  init_time = getRTimerDbl( rtimer);
 
   printf("\n Size       : %d\n"
         " Iterations : %d\n"
@@ -380,18 +385,21 @@ int main() {
 
   printf("\n\n   iteration          ||r||                 zeta\n");
 
-       /* ... Start Timimg Here  */
-  start, n = getStartTime(N);
+  resetRTimer( rtimer);
+  
+  /* ... Start Timimg Here  */
+  startRTimer( rtimer);
+  
   for (it=1;it<=NITER;it++){ 
     z,rnorm = cg(a,rowstr,colidx, x);
     zeta = tod(LAMBDA) + (1d/(sum(x*z)));
     printf("\n       %2d       %.14E    %.13f",it,rnorm,zeta);
     x = z*(1d/sqrt(sum(z*z)));    
   }
-  end, zeta = getEndTime(zeta);
-       /* ... End Timing Here  */
+  stopRTimer( rtimer);
+  /* ... End Timing Here  */
 
-  elapsed = diffptime(start,end);
+  elapsed = getRTimerDbl( rtimer);
   printf("\n Benchmark Completed\n");
        /* epsilon = 0.00000000001d */
   epsilon = pow(1d,-10d); 
@@ -399,13 +407,13 @@ int main() {
 
   if (err <= epsilon){
     verified = true;
-    verif = "SUCCESSFULL";
+    verif = "SUCCESSFUL";
     printf(" VERIFICATION SUCCESSFUL\n Zeta is\t %.14E\n"
         " Error is\t %.14E\n",zeta,err);
   }
   else {
     verified = false;
-    verif = "UNSUCCESSFULL";
+    verif = "UNSUCCESSFUL";
     printf(" VERIFICATION FAILED\n Zeta is\t\t %f\n"
         " The correct zeta is\t %f\n",zeta,ZETA_VERIFY_VALUE);
   }
