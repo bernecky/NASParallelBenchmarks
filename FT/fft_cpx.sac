@@ -1,9 +1,7 @@
-import Array: all;
-import StdIO: all; 
-import Math: all;
-import ArrayIO: all;
-import RandLC: all;
-import Complex: all;
+use StdIO: all; 
+use Math: all;
+use RandLC: all;
+use Structures: all;
 
 #ifndef CLASS_B
 #ifndef CLASS_S
@@ -44,10 +42,6 @@ inline double sq(double a){
 
 inline int sq(int a){
   return(a*a);
-}
-
-inline Complex::complex [NX,NY,NZ] toc(double[NX,NY,NZ,2] a){
-  return((:Complex::complex[NX,NY,NZ])a);
 }
 
 inline double my_mod(double a, double b, double d1, double d2)
