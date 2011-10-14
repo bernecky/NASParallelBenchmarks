@@ -1,22 +1,38 @@
+#######################################################################################
+#
+# General Setup:
+#
+SAC2CFLAGS = -O3 -v1 -maxlur 3
+#SAC2CFLAGS = -O3 -v1 -noLIR -maxlur 3
+#SAC2CFLAGS += -noopt -doPHM -doAPS -doRCAO -doMSCA
 
-all: cga cgb cgc cgd cgs cgw
+#
+# Setup for Makefile.standard:
+#
+# EXCLUDE_FILES               = 
+# TARGETDIR                   = .
+# LIBTARGETDIR                = .
+# INCTARGETDIR                = .
+# LIBSRCDIR                   = .
+# SUBDIRS                     = BT IS SP
+# MAKE_NON_LOCAL_DEPENDENCIES = 
 
-cga: cg.sac
-	sac2c -O3 -check tb -o cga cg.sac -DCLASSA
+#
+# Setup for Makefile.versions
+#
+# EXCLUDE_FILES_FOR_MT        = 
+# MAKE_MT_ALSO                = yes
+# VERSDIR                     = .
 
-cgb: cg.sac
-	sac2c -O3 -check tb -o oga cg.sac -DCLASSB
-
-cgc: cg.sac
-	sac2c -O3 -check tb -o cga cg.sac -DCLASSC
-
-cgd: cg.sac
-	sac2c -O3 -check tb -o cga cg.sac -DCLASSD
-
-cgs: cg.sac
-	sac2c -O3 -check tb -o cga cg.sac -DCLASSS
-
-cgw: cg.sac
-	sac2c -O3 -check tb -o cga cg.sac -DCLASSW
+#
+# Setup for Makefile.check:
+#
+CHECKLOGFILE                = ./CHECKLOG
+# CHECKDIR                    = .checkdir
+# RT_FLAGS                    =
+INPSDIR                     = inputs
+#
+#######################################################################################
 
 include $(SACBASE)/stdlib/Makefiles/Makefile_template.prg
+

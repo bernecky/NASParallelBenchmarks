@@ -1,0 +1,6 @@
+cga : -DCLASSA
+cgb : -DCLASSB
+cgc : -DCLASSC
+cgd : -DCLASSD
+cgs : -DCLASSS
+cgw : -DCLASSW
