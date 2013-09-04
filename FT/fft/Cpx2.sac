@@ -1,4 +1,4 @@
-Module Cpx2:
+module Cpx2;
 
 import Array: all;
 

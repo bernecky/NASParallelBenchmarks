@@ -1,4 +1,4 @@
-Module Support:
+module Support;
 
 import Complex: all;
 import Array: all;
