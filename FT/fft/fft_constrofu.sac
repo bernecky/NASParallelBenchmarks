@@ -61,19 +61,19 @@ int[3] shape(cpx[.,.,.] a){
 /*inline*/
 double[2] cpx2dbl(cpx c)
 {
-  return((:double[2]) c);
+  return((double[2]) c);
 }
 
 /*inline*/
 double[+] cpx2dbl(cpx[+] c)
 {
-  return((:double[+]) c);
+  return((double[+]) c);
 }
 
 /*inline*/
 cpx dbl2cpx(double[2] d)
 {
-  return((:cpx) d);
+  return((cpx) d);
 }
 
 /*inline*/
@@ -85,7 +85,7 @@ cpx dbl2cpx(double d)
 /*inline*/
 cpx[+] dbl2cpx(double[+] d)
 {
-  return((:cpx[+]) d);
+  return((cpx[+]) d);
 }
 
 /*inline*/
@@ -115,34 +115,34 @@ cpx i()
 /*inline*/
 cpx + (cpx a, cpx b) 
 {
-  x = (:double[2]) a;
-  y = (:double[2]) b;
+  x = (double[2]) a;
+  y = (double[2]) b;
   
   res = [x[[0]]+y[[0]] , x[[1]]+y[[1]]];
   
-  return((:cpx)res);
+  return((cpx)res);
 }
 
 /*inline*/
 cpx - (cpx a, cpx b) 
 {
-  x = (:double[2]) a;
-  y = (:double[2]) b;
+  x = (double[2]) a;
+  y = (double[2]) b;
   
   res = [x[[0]]-y[[0]] , x[[1]]-y[[1]]];
   
-  return((:cpx)res);
+  return((cpx)res);
 }
 
 /*inline*/
 cpx * (cpx a, cpx b) 
 {
-  x = (:double[2]) a;
-  y = (:double[2]) b;
+  x = (double[2]) a;
+  y = (double[2]) b;
   
   res = [x[[0]]*y[[0]] - x[[1]]*y[[1]], x[[0]]*y[[1]] + x[[1]]*y[[0]]];
   
-  return((:cpx)res);
+  return((cpx)res);
 }
 
 /*inline*/
@@ -179,14 +179,14 @@ cpx * (double a, cpx b)
 /*inline*/ 
 cpx / (cpx X1, cpx X2)
 {
-  Z = ((:double[2])X2)[[0]] ScalarArith::* ((:double[2])X2)[[0]]
-    ScalarArith::+ ((:double[2])X2)[[1]] ScalarArith::* ((:double[2])X2)[[1]];
+  Z = ((double[2])X2)[[0]] ScalarArith::* ((double[2])X2)[[0]]
+    ScalarArith::+ ((double[2])X2)[[1]] ScalarArith::* ((double[2])X2)[[1]];
 
-  return((:cpx)[(((:double[2])X1)[[0]] ScalarArith::* ((:double[2])X2)[[0]]
-                 ScalarArith::+ ((:double[2])X1)[[1]] ScalarArith::* ((:double[2])X2)[[1]])
+  return((cpx)[(((double[2])X1)[[0]] ScalarArith::* ((double[2])X2)[[0]]
+                 ScalarArith::+ ((double[2])X1)[[1]] ScalarArith::* ((double[2])X2)[[1]])
                 ScalarArith::/ Z,
-                (((:double[2])X1)[[1]] ScalarArith::* ((:double[2])X2)[[0]]
-                 ScalarArith::- ((:double[2])X1)[[0]] ScalarArith::* ((:double[2])X2)[[1]])
+                (((double[2])X1)[[1]] ScalarArith::* ((double[2])X2)[[0]]
+                 ScalarArith::- ((double[2])X1)[[0]] ScalarArith::* ((double[2])X2)[[1]])
                 ScalarArith::/ Z]);
 }
 
@@ -243,7 +243,7 @@ cpx[+] concat(cpx[+] a, cpx[+] b)
   
   r = aa ++ bb;
   
-  return((:cpx[+]) r);
+  return((cpx[+]) r);
 }
 
 /*inline*/ cpx[+] Transpose( int[+] permv, cpx[+] A)

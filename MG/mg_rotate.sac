@@ -274,10 +274,10 @@ int main()
   int[10,3] pos;
   int[10,3] neg;
 
-  size = (:int) FibreScanIntArray();
-  iter = (:int) FibreScanIntArray();
-  pos  = (:int[10, 3]) FibreScanIntArray();
-  neg  = (:int[10, 3]) FibreScanIntArray();
+  size = (int) FibreScanIntArray();
+  iter = (int) FibreScanIntArray();
+  pos  = (int[10, 3]) FibreScanIntArray();
+  neg  = (int[10, 3]) FibreScanIntArray();
 
 
   if(size == 256) {

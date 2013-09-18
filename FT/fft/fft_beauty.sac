@@ -139,7 +139,7 @@ inline cpx[+] Initialize(int[+] shp)
     }
   }
 
-  return((:cpx[+]) A);
+  return((cpx[+]) A);
 } 
 
 #endif
@@ -247,7 +247,7 @@ cpx[+] RootsOfUnity( int[+] shp, double dir)
     rofu[[i, 1]] = cpx_i(new_rofu);
   }
     
-  return((:cpx[+]) rofu); 
+  return((cpx[+]) rofu); 
 }
 
 
@@ -285,7 +285,7 @@ inline int[+] TransposeSelect( int[+] permv, int[+] indexv)
 
 cpx[+] Transpose( int[+] permvv, cpx[+] A)
 {
-  AA = (:double[+]) A;
+  AA = (double[+]) A;
 
   trp = with( .<= iv <= .)
         {
@@ -301,7 +301,7 @@ cpx[+] Transpose( int[+] permvv, cpx[+] A)
                   2], 
                   val);
 
-  return( (:cpx[+]) trp);
+  return( (cpx[+]) trp);
 }
 
 

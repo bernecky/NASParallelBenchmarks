@@ -29,24 +29,24 @@ import Math: all;
 inline
 Complex::complex +(Complex::complex a, Complex::complex b) 
 {
-  x = (:double[2]) a;
-  y = (:double[2]) b;
+  x = (double[2]) a;
+  y = (double[2]) b;
   
   res = [x[0]+y[0] , x[1]+y[1]];
   
-  return((:Complex::complex)res);
+  return((Complex::complex)res);
 }
 
 
 inline
 Complex::complex * (Complex::complex a, Complex::complex b) 
 {
-  x = (:double[2]) a;
-  y = (:double[2]) b;
+  x = (double[2]) a;
+  y = (double[2]) b;
   
   res = [x[0]*y[0] - x[1]*y[1], x[0]*y[1] + x[1]*y[0]];
   
-  return((:Complex::complex)res);
+  return((Complex::complex)res);
 }
 
 
@@ -56,9 +56,9 @@ Complex::complex[+] + (Complex::complex[+] a, Complex::complex[+] b)
 {
    res = with
            {
-               (.<=iv<=.) : ((:double[+])a)[iv] + ((:double[+])b)[iv];
+               (.<=iv<=.) : ((double[+])a)[iv] + ((double[+])b)[iv];
             }: genarray(shape(a),0.0); 
-      return((:Complex::complex[+])res);
+      return((Complex::complex[+])res);
 }
 
 
@@ -67,8 +67,8 @@ Complex::complex[+] + (Complex::complex[+] a, Complex::complex[+] b)
 
 Complex::complex[+] * (Complex::complex[+] a, Complex::complex[+] b)
 {
-  aa = (:double[+]) a;
-  bb = (:double[+]) b;
+  aa = (double[+]) a;
+  bb = (double[+]) b;
   
   ub_real = shape(aa);
   ub_real[shape(ub_real) - 1] = 1;
@@ -85,7 +85,7 @@ Complex::complex[+] * (Complex::complex[+] a, Complex::complex[+] b)
         }: modarray( res);
   
 
-  return((:Complex::complex[+])res);
+  return((Complex::complex[+])res);
 }
 
 
@@ -95,7 +95,7 @@ double[+] Transpose( int[+] permv, Complex::complex[+] A)
 */
 Complex::complex[+] Transpose( int[+] permv, Complex::complex[+] A)
 {
-  AA = (:double[+]) A;
+  AA = (double[+]) A;
  
    #ifndef NOTRICKS
       res = with
@@ -116,9 +116,9 @@ Complex::complex[+] Transpose( int[+] permv, Complex::complex[+] A)
                       2]);
   #endif
     
-  return( (:Complex::complex[+])res);
+  return( (Complex::complex[+])res);
   
-  /*return( (:double[+])res);*/
+  /*return( (double[+])res);*/
 }
 
 
@@ -621,7 +621,7 @@ inline Complex::complex[4] ComplexFFT(double dir, Complex::complex[4] v, Complex
     t2 = todv( w0 - w2 );
     t3 = todv( w1 - w3 );
     t = reshape( [4,2],[t0[[0]],t0[[1]],t1[[0]],t1[[1]],t2[[0]],t2[[1]],t3[[0]],t3[[1]]]);
-    return( (:Complex::complex[4]) t );
+    return( (Complex::complex[4]) t );
 }
 
 inline Complex::complex[0] ComplexFFT(double dir, Complex::complex[0] v, Complex::complex[0] rofu)
@@ -682,7 +682,7 @@ Complex::complex[+] ComplexFFTSlice( double dir, Complex::complex[+] in, Complex
              ( [0,0] <= iv < [shape(in)[[0]],shape(in)[[1]]] ) :  ComplexFFT(dir, in[iv], rofu);
            } : modarray( in);**********************/
   result  = genarray(([NX, NY, NZ,2]),1.0);
-  return((:Complex::complex[+])result);
+  return((Complex::complex[+])result);
 }
 
 #endif
@@ -735,7 +735,7 @@ int main()
 
   U = Initialize();  /* the result of Initialized() is an array  of [NX, NY, NZ, 2] */
 
- V = FFT3d_forward( (:Complex::complex[+])U, (:Complex::complex[+])rofu);
+ V = FFT3d_forward( (Complex::complex[+])U, (Complex::complex[+])rofu);
 
   rofu = RootsOfUnity( -1d); 
 
@@ -744,12 +744,12 @@ int main()
 
   for (t=1 ; t<=N ; t++) {
     /*
-    W = Evolve( (:double[+])V, t, indexmap, expomap);
+    W = Evolve( (double[+])V, t, indexmap, expomap);
   
     
-    X = FFT3d_inverse( (:Complex::complex[+])W, (:Complex::complex[+])rofu) / tod(total_size);
+    X = FFT3d_inverse( (Complex::complex[+])W, (Complex::complex[+])rofu) / tod(total_size);
 
-    check = Checksum((:double[+])X);*****************************************/
+    check = Checksum((double[+])X);*****************************************/
     check = 0;
     printf("Ergebnis: ");
     print(check);

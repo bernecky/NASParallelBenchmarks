@@ -22,46 +22,46 @@ typedef double[2] cpx;
 
 int [+] shape(cpx [+] a)
 {
-  return(shape((:double)a));
+  return(shape((double)a));
 }
 
 cpx [*] sel(int [*] i, cpx [*] a)
 {
-  return((:cpx)sel(i, (:double) a));
+  return((cpx)sel(i, (double) a));
 }
 
 inline
 cpx + (cpx a, cpx b) 
 {
-  x = (:double[2]) a;
-  y = (:double[2]) b;
+  x = (double[2]) a;
+  y = (double[2]) b;
   
   res = [x[0]+y[0] , x[1]+y[1]];
   
-  return((:cpx)res);
+  return((cpx)res);
 }
 
 inline
 cpx - (cpx a, cpx b)
 {
-  x = (:double[2]) a;
-  y = (:double[2]) b;
+  x = (double[2]) a;
+  y = (double[2]) b;
   
   res = [x[0]-y[0] , x[1]-y[1]];
   
-  return((:cpx)res);  
+  return((cpx)res);  
 }
 
 
 inline
 cpx * (cpx a, cpx b) 
 {
-  x = (:double[2]) a;
-  y = (:double[2]) b;
+  x = (double[2]) a;
+  y = (double[2]) b;
   
   res = [x[0]*y[0] - x[1]*y[1], x[0]*y[1] + x[1]*y[0]];
   
-  return((:cpx)res);
+  return((cpx)res);
 }
 
 
@@ -70,9 +70,9 @@ cpx[+] + (cpx[+] a, cpx[+] b)
 {
 
   res = with (.<=iv<=.)
-  genarray(shape(a), ((:double[+])a)[iv] + ((:double[+])b)[iv]); 
+  genarray(shape(a), ((double[+])a)[iv] + ((double[+])b)[iv]); 
   
-  return((:cpx[+])res);
+  return((cpx[+])res);
 }
 
 inline
@@ -80,9 +80,9 @@ cpx[+] - (cpx[+] a, cpx[+] b)
 {
 
   res = with (.<=iv<=.)
-  genarray(shape(a), ((:double[+])a)[iv] - ((:double[+])b)[iv]); 
+  genarray(shape(a), ((double[+])a)[iv] - ((double[+])b)[iv]); 
   
-  return((:cpx[+])res);
+  return((cpx[+])res);
 }
 
 
@@ -90,8 +90,8 @@ cpx[+] - (cpx[+] a, cpx[+] b)
 
 cpx[+] * (cpx[+] a, cpx[+] b)
 {
-  aa = (:double[+]) a;
-  bb = (:double[+]) b;
+  aa = (double[+]) a;
+  bb = (double[+]) b;
   
   ub_real = shape(aa);
   ub_real[shape(ub_real) - 1] = 1;
@@ -112,13 +112,13 @@ cpx[+] * (cpx[+] a, cpx[+] b)
         modarray( res, iv, val);
   
 
-  return((:cpx[+])res);
+  return((cpx[+])res);
 }
 
 
 cpx[+] Transpose( int[+] permv, cpx[+] A)
 {
-  AA = (:double[+]) A;
+  AA = (double[+]) A;
 
   res = with( .<= iv <= .)
         {
@@ -134,7 +134,7 @@ cpx[+] Transpose( int[+] permv, cpx[+] A)
                   2], 
                   val);
 
-  return( (:cpx[+])res);
+  return( (cpx[+])res);
 }
 
 
@@ -795,7 +795,7 @@ int main()
 
   U = Initialize();
 
-  V = FFT3d_forward( (:cpx[+])U, (:cpx[+])rofu);
+  V = FFT3d_forward( (cpx[+])U, (cpx[+])rofu);
 
   rofu = RootsOfUnity( -1d); 
 
@@ -804,11 +804,11 @@ int main()
 
   for (t=1 ; t<=N ; t++) {
     
-    W = Evolve( (:double[+])V, t, indexmap, expomap);
+    W = Evolve( (double[+])V, t, indexmap, expomap);
  
-    X = FFT3d_inverse( (:cpx[+])W, (:cpx[+])rofu) / tod(total_size);
+    X = FFT3d_inverse( (cpx[+])W, (cpx[+])rofu) / tod(total_size);
 
-    check = Checksum((:double[+])X);
+    check = Checksum((double[+])X);
 
     printf("Ergebnis: ");
     print(check);

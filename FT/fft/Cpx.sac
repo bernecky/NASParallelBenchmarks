@@ -8,24 +8,24 @@ typedef double[2] cpx;
 inline
 cpx + (cpx a, cpx b) 
 {
-  x = (:double[2]) a;
-  y = (:double[2]) b;
+  x = (double[2]) a;
+  y = (double[2]) b;
   
   res = [x[0]+y[0] , x[1]+y[1]];
   
-  return((:cpx)res);
+  return((cpx)res);
 }
 
 
 inline
 cpx * (cpx a, cpx b) 
 {
-  x = (:double[2]) a;
-  y = (:double[2]) b;
+  x = (double[2]) a;
+  y = (double[2]) b;
   
   res = [x[0]*y[0] - x[1]*y[1], x[0]*y[1] + x[1]*y[0]];
   
-  return((:cpx)res);
+  return((cpx)res);
 }
 
 
@@ -41,9 +41,10 @@ inline
 cpx[+] + (cpx[+] a, cpx[+] b)
 {
 
-  res = with (.<=iv<=.)
-  genarray(shape(a), ((:double[+])a)[iv] + ((:double[+])b)[iv]); 
-  
+  res = with {
+    (.<=iv<=.) : ((double[+])a)[iv] + ((double[+])b)[iv];
+  } : genarray(shape(a));
+
   return( res);
 }
 
@@ -51,17 +52,18 @@ cpx[+] + (cpx[+] a, cpx[+] b)
 inline
 cpx[+] * (cpx[+] a, cpx[+] b)
 {
-  aa = (:double[+]) a;
-  bb = (:double[+]) b;
+  aa = (double[+]) a;
+  bb = (double[+]) b;
   
   ub_real = shape(aa);
   ub_real[shape(ub_real)[[0]] - 1] = 1;
   
-  res = with (. <= iv < ub_real) 
-    {
-      val = aa[iv] * bb[iv];
-    }
-  genarray(shape(a), val);
+  res = with {
+     (. <= iv < ub_real) 
+     {
+       val = aa[iv] * bb[iv];
+     }: val;
+  }: genarray(shape(a));
   
   return(res);
 }

@@ -4,24 +4,24 @@ typedef double[2] cpx;
 inline
 cpx + (cpx a, cpx b) 
 {
-  x = (:double[2]) a;
-  y = (:double[2]) b;
+  x = (double[2]) a;
+  y = (double[2]) b;
   
   res = [x[0]+y[0] , x[1]+y[1]];
   
-  return((:cpx)res);
+  return((cpx)res);
 }
 
 
 inline
 cpx * (cpx a, cpx b) 
 {
-  x = (:double[2]) a;
-  y = (:double[2]) b;
+  x = (double[2]) a;
+  y = (double[2]) b;
   
   res = [x[0]*y[0] - x[1]*y[1], x[0]*y[1] + x[1]*y[0]];
   
-  return((:cpx)res);
+  return((cpx)res);
 }
 
 
@@ -38,9 +38,9 @@ cpx[+] + (cpx[+] a, cpx[+] b)
 {
 
   res = with (.<=iv<=.)
-  genarray(shape(a), ((:double[+])a)[iv] + ((:double[+])b)[iv]); 
+  genarray(shape(a), ((double[+])a)[iv] + ((double[+])b)[iv]); 
   
-  return((:cpx[+])res);
+  return((cpx[+])res);
 }
 
 
@@ -48,8 +48,8 @@ cpx[+] + (cpx[+] a, cpx[+] b)
 
 cpx[+] * (cpx[+] a, cpx[+] b)
 {
-  aa = (:double[+]) a;
-  bb = (:double[+]) b;
+  aa = (double[+]) a;
+  bb = (double[+]) b;
   
   ub_real = shape(aa);
   ub_real[shape(ub_real) - 1] = 1;
@@ -70,7 +70,7 @@ cpx[+] * (cpx[+] a, cpx[+] b)
         modarray( res, iv, val);
   
 
-  return((:cpx[+])res);
+  return((cpx[+])res);
 }
 
 
@@ -105,7 +105,7 @@ cpx[+] Transpose( int[+] permvv, cpx[+] A)
 {
   permv = [2,1,0];
   
-  AA = (:double[+]) A;
+  AA = (double[+]) A;
 
   res = with( .<= iv <= .)
         {
@@ -121,7 +121,7 @@ cpx[+] Transpose( int[+] permvv, cpx[+] A)
                   2], 
                   val);
 
-  return( (:cpx[+])res);
+  return( (cpx[+])res);
 }
 
 
@@ -135,7 +135,7 @@ cpx[+] create(int[+] shp)
   genarray([shp[[0]],shp[[1]],2], val);
 
   
-  return((:cpx[+])a);
+  return((cpx[+])a);
 }
 
 
@@ -160,9 +160,9 @@ int fun(cpx[+] x)
 
 cpx psi(int[+] iv, cpx[+] a)
 {
-  aa = (:double[+]) a;
+  aa = (double[+]) a;
   res = aa[iv];
-  return((:cpx) res);
+  return((cpx) res);
 }
 
 
