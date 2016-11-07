@@ -15,7 +15,6 @@ SAC2CFLAGS = -O3 -v1 -maxlur 3
 # INCTARGETDIR                = .
 # LIBSRCDIR                   = .
 # SUBDIRS                     = sac_from_c
-# MAKE_NON_LOCAL_DEPENDENCIES = 
 
 #
 # Setup for Makefile.versions
@@ -34,5 +33,5 @@ INPSDIR                     = input
 #
 #######################################################################################
 
-include $(SACBASE)/stdlib/Makefiles/Makefile_template.prg
+include $(SACBASE)/Makefiles/Makefile_template.prg
 
