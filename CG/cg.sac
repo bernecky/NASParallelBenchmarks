@@ -355,7 +355,7 @@ int main() {
  * NONZER            : Number of non zeros
  * ZETA_VERIFY_VALUE : The correct Zeta
  */
-  N = FibreScanIntArray();
+  N = (int)FibreScanIntArray();
   NITER = (int) FibreScanIntArray();
   LAMBDA = (int) FibreScanIntArray();
   NONZER = (int) FibreScanIntArray();
@@ -419,20 +419,20 @@ int main() {
   }
 
   if( elapsed != 0d ) { 
-    mflops = tod( 2*NITER*N ) * ( 3d+tod( NONZER*(NONZER+1) )+ 25d *(5d +tod( tod(NONZER)*(tod(NONZER)+1d) ))+ 3d ) / elapsed / 1000000.0d;
+    gflops = tod( 2*NITER*N ) * ( 3d+tod( NONZER*(NONZER+1) )+ 25d *(5d +tod( tod(NONZER)*(tod(NONZER)+1d) ))+ 3d ) / elapsed / 1000000000.0d;
   }
-  else mflops = 0d;
+  else gflops = 0d;
   printf("\n\n CG Benchmark Completed.\n");
 
   printf(" Size\t\t =\t%d\n"			/*	Problem size	*/
          " Iterations\t =\t%d\n"
          " Time in seconds =\t%f\n"
-         " Mop/s total     =\t%f\n"		/*        RATE	       */
+         " Gop/s total     =\t%f\n"		/*        RATE	       */
          " Operation type  =\tfloating point\n"
          " Verification    =\t%s\n"
          " Version\t =\t3.2.1\n"
          " Compile date\t =\t"__DATE__"  \n\n\n",
-         N,NITER,elapsed,mflops,verif);
+         (int)N,(int)NITER,(double)elapsed,(double)gflops,(String::string)verif);
 
   return(0);
 }
