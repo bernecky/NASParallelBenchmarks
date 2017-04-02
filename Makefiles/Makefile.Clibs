@@ -12,9 +12,9 @@
 # name.
 # Otherwise, it is assumed that each .c file constitutes its own library whose
 # name equals the .c-file's name.
-# 
+#
 
-include $(SACBASE)/stdlib/Makefiles/Makefile.standard
+include $(SACBASE)/Makefiles/Makefile.standard
 
 C_FILES      := $(sort $(patsubst %.y, %.tab,                     \
                          $(patsubst %.l, lex.%,                   \
@@ -29,7 +29,7 @@ ifeq ($(SAC_FILES),)
 #
 # we assume all .c-files to belong to a single module.
 # Its name equals the last part of the actual directory.
-# 
+#
 
 C_MODS       := $(notdir $(shell pwd))
 C_MODTARGETS := $(patsubst %,$(LIBTARGETDIR)/%.a,$(notdir $(shell pwd)))
@@ -67,28 +67,28 @@ endif
 # in case of MAKE_NON_LOCAL_DEPENDENCIES == yes, switch from $(C_MODTARGETS)
 # to dummy-targets .libD in order to get sac-conform output of gmake 8-)
 #
- 
+
 ifeq ("$(MAKE_NON_LOCAL_DEPENDENCIES)", "yes")
- 
+
 C_MODTARGETS_D     = $(patsubst %,%.libD, $(C_MODS))
- 
+
 #
 # default target definition in case of MAKE_NON_LOCAL_DEPENDENCIES == yes:
 #
 standard_all: $(C_MODTARGETS_D)
- 
+
 else
- 
+
 #
 # normal default target definition:
 #
- 
+
 standard_all: $(C_MODTARGETS)
 endif
 
 %.o: %.c
 	@if [ "$(@D)" == "." ]; \
-	then $(CC) $(CCFLAGS) -I$(CCINCLUDEDIR) -o $@ -c $<; \
+	then $(CC) $(CCFLAGS) $(CCINCLUDES) -o $@ -c $<; \
 	     $(CLOCK_SKEW_ELIMINATION) $@; \
 	else $(MAKE) -C $(@D); \
 	fi
@@ -109,16 +109,16 @@ YACC_H_FILES   := $(patsubst %.y, %.tab.h, $(wildcard *.y))
 # is generated!
 #
 .%.d: %.c $(YACC_H_FILES)
-	@$(ECHO) "$(CC) -M $(CCFLAGS) -I$(CCINCLUDEDIR) $<  > $@"
-	@if $(CC) -M $(CCFLAGS) -I$(CCINCLUDEDIR) $<  > $@d ; \
+	@$(ECHO) "$(CC) -M $(CCFLAGS) $(CCINCLUDES) $<  > $@"
+	@if $(CC) -M $(CCFLAGS) $(CCINCLUDES) $<  > $@d ; \
 	 then sed 's/\($*\)\.o[ :]*/$*\.o $@\: /'  <$@d >$@; \
 	      $(RM) $@d ; \
 	 else $(RM) $@d ; \
-	      exit 1 ;  \
+		  exit 1 ;  \
 	 fi
 	$(CLOCK_SKEW_ELIMINATION) $@
 
-%.libD: 
+%.libD:
 	@ $(MAKE) out2 modname_long=\($(LIBTARGETDIR)/\)$*.a
 	@ $(MAKE) $(LIBTARGETDIR)/$*.a
 
@@ -129,9 +129,9 @@ YACC_H_FILES   := $(patsubst %.y, %.tab.h, $(wildcard *.y))
 # automatic dependency updating mechanism:
 #   gmake implicitly remakes all files that are included!
 #
- 
+
 C_DEPS       = $(patsubst %,.%.d, $(C_FILES))
- 
+
 ifneq ($(C_DEPS),)
   ifneq ($(TARGET),clean)
     ifneq ($(TARGET),distclean)
