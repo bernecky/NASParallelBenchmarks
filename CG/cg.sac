@@ -1,35 +1,109 @@
 /*
  *     C O N J U G A T E   G R A D I E N T   B E N C H M A R K
- *               S A C   S E R I A L     V E R S I O N 
- *            
+ *               S A C   S E R I A L     V E R S I O N
+ *
  *
  *                 SAC Parallel Benchmark (SPB)
  *                           C G
  *
- * Conjugate Gradient (CG) benchmark is an important scientific kernel 
- * used to evaluate machine performance and compare characteristics of 
+ * Conjugate Gradient (CG) benchmark is an important scientific kernel
+ * used to evaluate machine performance and compare characteristics of
  * different programming models.
  *
  *
- * <--! compiling the bechmark with a class X :
- *          sac2c cg-vNumber.sac -DCLASSX     !-->
+ * <--! compiling the bechmark for a class X :
+ *          sac2c cg.sac -DCLASS=X     !-->
  */
 
+#define S 1
+#define W 2
+#define A 3
+#define B 4
+#define C 5
+#define D 6
+#define E 7  // BEWARE! This class requires an array indexed by 64-bit int
+             //         which currently is not possible in SaC!
+
+#if defined (CLASS)
+#if (CLASS == A)
+#define CLASS_STR "A"
+#define N 14000
+#define NPP 14001   //N+1
+#define NITER 15
+#define LAMBDA 20
+#define NONZER 11
+#define NONZERPP 12  //NONZER+1
+#define NZ 2016000   //N*NONZERPP*NONZERPP
+#define ZETA_VERIFY_VALUE 17.130235054029d
+#define RCOND 0.1d
+
+#elif (CLASS == B)
+#define CLASS_STR "B"
+#define N 75000
+#define NPP 75001
+#define NITER 75
+#define LAMBDA 60
+#define NONZER 13
+#define NONZERPP 14
+#define NZ 14700000
+#define ZETA_VERIFY_VALUE 22.712745482631d
+#define RCOND 0.1d
+
+#elif (CLASS == C)
+#define CLASS_STR "C"
+#define  N 150000
+#define  NPP 150001
+#define  NITER 75
+#define  LAMBDA 110
+#define  NONZER 15
+#define  NONZERPP 16
+#define  NZ 38400000
+#define  ZETA_VERIFY_VALUE 28.973605592845d
+#define  RCOND 0.1d
+
+#elif (CLASS == D)
+#define CLASS_STR "D"
+#define  N 1500000
+#define  NPP 1500001
+#define  NITER 100
+#define  LAMBDA 500
+#define  NONZER 21
+#define  NONZERPP 22
+#define  NZ 726000000
+#define  ZETA_VERIFY_VALUE 52.514532105794d
+#define  RCOND 0.1d
+
+#elif (CLASS == E)
+#define CLASS_STR "E"
+#define  N 9000000
+#define  NPP 9000001
+#define  NITER 100
+#define  LAMBDA 1500
+#define  NONZER 26
+#define  NONZERPP 27
+#define  NZ 6561000000
+#define  ZETA_VERIFY_VALUE 77.522164599383d
+#define  RCOND 0.1d
+#else
+
+#undef CLASS
+#endif
+#endif
 
 import StdIO: all;
 import Array: all;
 import Math : all;
 
 use RTimer: all;
-use RandLC: all;    
+use RandLC: all;
 
-/*							
- * Multiplying a Matrix formed by a triple:		
- *	(a,rowstr,colidx) and a Vector "p"		
- *							
- * Input: a, rowstr, colidx,p				
- * Output: r						
- *							
+/*
+ * Multiplying a Matrix formed by a triple:
+ *      (a,rowstr,colidx) and a Vector "p"
+ *
+ * Input: a, rowstr, colidx,p
+ * Output: r
+ *
  */
 inline
 double[.] matvecmul( double[.] a, int[.] rowstr, int[.] colidx, double[.] p) {
@@ -46,7 +120,6 @@ double[.] matvecmul( double[.] a, int[.] rowstr, int[.] colidx, double[.] p) {
   return(q);
 }
 
-
 /*							
  * Conjugate gradient					
  *							
@@ -56,15 +129,23 @@ double[.] matvecmul( double[.] a, int[.] rowstr, int[.] colidx, double[.] p) {
  * Output: z, ||r||
  *							
  */
+
+#ifdef CLASS
+double[.], double cg( double[NZ] a ,int[NPP] rowstr, int[NZ] colidx, double[N] x){
+#else
 double[.], double cg( double[.] a ,int[.] rowstr, int[.] colidx, double[.] x){
+#endif
+
   sum = 0d;  
   z = genarray(shape(x), 0.0d);
   r = x;
   rho = sum(r*r);  
   p = r;
+  inhibit_wlf = 0d;
  
   for( i=0; i<25; i++) {
     q = matvecmul(a,rowstr,colidx,p);
+    inhibit_wlf *= q[0];
     alpha = rho / sum(p * q);
     z = z + (alpha * p);
     r = r - (alpha * q);
@@ -77,7 +158,7 @@ double[.], double cg( double[.] a ,int[.] rowstr, int[.] colidx, double[.] x){
   d = matvecmul(a,rowstr,colidx,z);
   r = d;
   d = x - r;
-  s = sum(d*d);
+  s = sum(d*d)+inhibit_wlf;
   rnorm = sqrt(s);
   return(z,rnorm);
 }
@@ -100,11 +181,17 @@ double[.], double cg( double[.] a ,int[.] rowstr, int[.] colidx, double[.] x){
  *	JA     :					
  *							
  */
-double[.], int[.], int[.] makea (int n, int NONZER, int RCOND, int LAMBDA){
+double[.], int[.], int[.] makea(int n, int nonzer, double rcond, int lambda){
 
-  arow = genarray([n],0);
-  acol = genarray([n,NONZER+1],-1);
-  aelt = genarray([n,NONZER+1],0.0d);
+#ifdef CLASS
+  int[N] arow;
+  int[N,NONZERPP] acol;
+  double[N,NONZERPP] aelt;
+#endif
+
+  arow = genarray([n],0);             // lenghs of individual sparse rows (NONZER or NONZER+1)
+  acol = genarray([n,nonzer+1],-1);   // indices of non-zero elements within rows
+  aelt = genarray([n,nonzer+1],0.0d); // values of non-zero elements within rows
 
       /* nn1 is the smallest power of 2 not less than n   */ 
   nn1 = 1;
@@ -119,21 +206,35 @@ double[.], int[.], int[.] makea (int n, int NONZER, int RCOND, int LAMBDA){
        */ 
   rlc = create_randlc( tran, amult);
   zeta = randlc(rlc);
+  
   for (i=0;i<n;i++){
-    nzv = NONZER;
-       /* Generating a sparse n-vector vc and an index vector for column positions ivc */
+    nzv = nonzer;
+       /*
+        * Generate a sparse vector of conceptual length n with nzv many non-zero elements.
+        * Values and index positions are randomly chosen.
+        * Store the generated vector in compressed form using 2 vectors of length nzv:
+        * vc holds the non-zero values and ivc holds the corresponding indices.
+        */
     vc,ivc = sprnvc(rlc,n,nzv,nn1);
-       /* ... the ith element of vc is set to 0.5d to insure that A cannot be structurally singular */
+       /* ... the ith element of vc is set to 0.5d to insure that A cannot be structurally singular 
+          this potentially adds one more non-zero element! */
     nzv,vc,ivc = vecset (n,vc,ivc,nzv,i,0.5d);
+    
     arow[i]= nzv; 
-    for (ivelt=0; ivelt<nzv; ivelt++){
-      acol[[i,ivelt]] = ivc[[ivelt]];
-      aelt[[i,ivelt]] = vc[[ivelt]];
-    } 
+#ifdef HAVE_POLYHEDRAL_UIP
+   acol[i] = ivc;
+   aelt[i] = vc;
+#else
+    for( ivelt=0; ivelt<nzv; ivelt++) {
+      acol[i,ivelt] = ivc[[ivelt]];
+      aelt[i,ivelt] = vc[[ivelt]];
+    }
+#endif
   }
        /*  ... make the sparse matrix from the list of elements with duplicates  */
- a,colidx,rowstr = sparse(arow,acol,aelt,n, NONZER, RCOND, LAMBDA);
-return (a,colidx,rowstr);
+  a,colidx,rowstr = sparse(arow,acol,aelt, rcond, lambda);
+
+  return (a,colidx,rowstr);
 }
 
 
@@ -141,8 +242,20 @@ return (a,colidx,rowstr);
 /*							
  * Sprnvc 						
  *							
- * Generate a sparse n-vector (v, iv)			
- *  having nzv nonzeros	 				
+ * Generate a sparse vector of conceptual length n having nz nonzeros	 				
+ * (assuming nz << n). The sparse vector is represented by two vectors of
+ * length nz+1: v - which holds all values and iv - which holds the index
+ * positions of all non-zero values. The final element (v[nz]i, iv[nz])
+ * is left 0 with index -1! This allows for a potential addition of one
+ * element later!
+ *
+ * nn1 is supposed to be the smallest power of 2 >= n.
+ * 
+ * We successively generate 2 random numbers: one as non-zero value
+ * the next as random index between 0 and (nn1-1).
+ * Using this source of index value pairs, we fill the sparse vactors
+ * ensuring that all indices are within bounds and without duplicates, i.e.,
+ * no index is found twice in iv.
  * 							
  * Input: n, nz, nn1 					
  * Output: v, iv 				 
@@ -154,16 +267,16 @@ double [.], int[.] sprnvc (RandLC &rlc, int n, int nz, int nn1){
   nzv = 0;
   
   while(nzv<nz){
-    vecelt = randlc(rlc); 
-    vecloc = randlc(rlc);
+    vecelt = randlc(rlc);  // random element
+    vecloc = randlc(rlc);  // random index
 
-    i = toi(tod(nn1)*vecloc);
-    if (i<n) {
+    i = toi(tod(nn1)*vecloc);  // index between 0 -> (nn1-1)
+    if (i<n) {                 // otherwise: try again!
       found = false;
       for (ii=0;ii<nzv;ii++){   
 	found = found | iv[[ii]] == i;
       }
-      if (!found){
+      if (!found){            // otherwise: try again!
         v[[nzv]] = vecelt;
         iv[[nzv]] = i;
         nzv++;
@@ -179,6 +292,7 @@ double [.], int[.] sprnvc (RandLC &rlc, int n, int nz, int nn1){
  *  vecset
  * 						
  * the ith element of the vector is set to 1/2 to ensure that A cannot be structurally singular	
+ * This potentially adds one more non-zero element to the vector!
  *
  *  Input: n, v, iv, nvz, i, val 								
  *  Output: nvz, v, iv						
@@ -209,12 +323,27 @@ int, double [.], int[.] vecset (int n,double[.] v, int[.]iv, int nzv, int i,doub
  * Assembles the matrix data structures			
  *  from the list of triples 				
  * 							
- * Input: arow, acol, aelt						
+ * Input: arow(n), acol(n,nz+1), aelt(n,nz+1)
  * Output: a, rowstr, colidx				
  */
+#ifdef CLASS
+double [.], int[.], int[.] sparse(int[N] arow, int[N,NONZERPP] acol, double[N,NONZERPP] aelt,
+                                  double rcond, int lambda) {
+
+int[NPP] rowstr;
+int[NZ] colidx;
+double[NZ] a;
+int[N] nzloc;
+
+#else
 double [.], int[.], int[.] sparse(int[.] arow, int[.,.] acol, double[.,.] aelt,
-                                  int n, int NONZER, int RCOND, int LAMBDA) { 
-  nz = n *(NONZER+1)*(NONZER+1);
+                                  double rcond, int lambda) {
+#endif
+
+  n = shape(arow)[0];
+  nz_1 = shape(acol)[1];
+
+  nz = n *(nz_1)*(nz_1);
 
   rowstr = genarray([n+1],0);
   colidx = genarray([nz],-1);
@@ -234,7 +363,7 @@ double [.], int[.], int[.] sparse(int[.] arow, int[.,.] acol, double[.,.] aelt,
   nza = rowstr[[n]]-1;   
         /* ... generate actual values by summing duplicates */
 
-  ratio = pow(tod(RCOND),1d/tod(n));
+  ratio = pow(rcond,1d/tod(n));
        /* The weights wi are a geometric sequence with a first value w=1d 
         * and the ratio chosen so that wN = 0.1d 
         */
@@ -250,7 +379,7 @@ double [.], int[.], int[.] sparse(int[.] arow, int[.,.] acol, double[.,.] aelt,
                * to bound the smallest eigenvalue from below by rcond 
                */
         if ( (jcol==j) & (j==i) ){
-          va = va + tod(RCOND) - tod(LAMBDA);
+          va = va + rcond - tod(lambda);
         }
                /* ...insertelts   */
 	found = false;
@@ -355,23 +484,32 @@ int main() {
  * NONZER            : Number of non zeros
  * ZETA_VERIFY_VALUE : The correct Zeta
  */
-  N = (int)FibreScanIntArray();
-  NITER = (int) FibreScanIntArray();
-  LAMBDA = (int) FibreScanIntArray();
-  NONZER = (int) FibreScanIntArray();
-  ZETA_VERIFY_VALUE = (double) FibreScanDoubleArray();
+
+#ifdef CLASS
+  n = N;
+  niter = NITER;
+  lambda = LAMBDA;
+  nonzer = NONZER;
+  zeta_verify_value = ZETA_VERIFY_VALUE;
+  rcond = RCOND;
+#else
+  n = (int)FibreScanIntArray();
+  niter = (int) FibreScanIntArray();
+  lambda = (int) FibreScanIntArray();
+  nonzer = (int) FibreScanIntArray();
+  zeta_verify_value = (double) FibreScanDoubleArray();
+  rcond = (double) FibreScanDoubleArray();
+#endif
 
   printf("\n\n SAC Parallel Benchmarks (NPB3.2-SAC)"
               " - CG Benchmark\n");
 
   rtimer = createRTimer( );
 
-  n = N; nz = n *(toi(NONZER)+1)*(toi(NONZER)+1);
-  a = genarray([nz],0d);
        /* ... Measure Initialisation Time  */
   startRTimer( rtimer);
        /* ... generate the input sparse Matrix A which is formed by a triple (a, colidx, rowstr) */
-  a,colidx,rowstr = makea(n, toi(NONZER), NONZER, LAMBDA);
+  a,colidx,rowstr = makea(n, nonzer, rcond, lambda);
   x = genarray([n],1d);
   zeta = 0d;
   stopRTimer( rtimer);
@@ -381,7 +519,7 @@ int main() {
 
   printf("\n Size       : %d\n"
         " Iterations : %d\n"
-        "\n Initialisation time = %f seconds",N,NITER,init_time);
+        "\n Initialisation time = %f seconds",n,niter,init_time);
 
   printf("\n\n   iteration          ||r||                 zeta\n");
 
@@ -390,9 +528,9 @@ int main() {
   /* ... Start Timimg Here  */
   startRTimer( rtimer);
   
-  for (it=1;it<=NITER;it++){ 
+  for (it=1;it<=niter;it++){ 
     z,rnorm = cg(a,rowstr,colidx, x);
-    zeta = tod(LAMBDA) + (1d/(sum(x*z)));
+    zeta = tod(lambda) + (1d/(sum(x*z)));
     printf("\n       %2d       %.14E    %.13f",it,rnorm,zeta);
     x = z*(1d/sqrt(sum(z*z)));    
   }
@@ -401,9 +539,8 @@ int main() {
 
   elapsed = getRTimerDbl( rtimer);
   printf("\n Benchmark Completed\n");
-       /* epsilon = 0.00000000001d */
   epsilon = pow(1d,-10d); 
-  err = fabs(zeta - ZETA_VERIFY_VALUE)/ ZETA_VERIFY_VALUE;
+  err = fabs(zeta - zeta_verify_value)/ zeta_verify_value;
 
   if (err <= epsilon){
     verified = true;
@@ -415,15 +552,20 @@ int main() {
     verified = false;
     verif = "UNSUCCESSFUL";
     printf(" VERIFICATION FAILED\n Zeta is\t\t %f\n"
-        " The correct zeta is\t %f\n",zeta,ZETA_VERIFY_VALUE);
+        " The correct zeta is\t %f\n",zeta,zeta_verify_value);
   }
 
   if( elapsed != 0d ) { 
-    gflops = tod( 2*NITER*N ) * ( 3d+tod( NONZER*(NONZER+1) )+ 25d *(5d +tod( tod(NONZER)*(tod(NONZER)+1d) ))+ 3d ) / elapsed / 1000000000.0d;
+    gflops = tod( 2*niter*n ) * ( 3d+tod( nonzer*(nonzer+1) )+ 25d *(5d +tod( tod(nonzer)*(tod(nonzer)+1d) ))+ 3d ) / elapsed / 1000000000.0d;
   }
   else gflops = 0d;
   printf("\n\n CG Benchmark Completed.\n");
 
+#ifdef CLASS
+  printf(" Class\t\t =\t%s\n", CLASS_STR );
+#else
+  printf(" Class\t\t =\tfrom stdin\n");
+#endif
   printf(" Size\t\t =\t%d\n"			/*	Problem size	*/
          " Iterations\t =\t%d\n"
          " Time in seconds =\t%f\n"
@@ -432,7 +574,7 @@ int main() {
          " Verification    =\t%s\n"
          " Version\t =\t3.2.1\n"
          " Compile date\t =\t"__DATE__"  \n\n\n",
-         (int)N,(int)NITER,(double)elapsed,(double)gflops,(String::string)verif);
+         (int)n,(int)niter,(double)elapsed,(double)gflops,(String::string)verif);
 
   return(0);
 }
